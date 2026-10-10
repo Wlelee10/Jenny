@@ -593,12 +593,28 @@ function startCollapse() {
     energy = Math.min(energy + 0.3, 1.4);
     if (silent) return;
 
+    // 빛줄기 + 별빛
     const flash = document.createElement("span");
     flash.className = "portal-flash";
     flash.style.left = `${x.toFixed(1)}px`;
     flash.style.setProperty("--flash-w", `${Math.max(width * 1.6, 90).toFixed(0)}px`);
-    flash.addEventListener("animationend", () => flash.remove());
     portalFlashes.appendChild(flash);
+
+    // 작은 반짝이 몇 개가 선 위아래로 흩어짐
+    const sparks = [flash];
+    const count = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const spark = document.createElement("span");
+      spark.className = "portal-spark";
+      spark.style.left = `${(x + (Math.random() - 0.5) * width * 1.4).toFixed(1)}px`;
+      spark.style.setProperty("--spark", `${(5 + Math.random() * 7).toFixed(1)}px`);
+      spark.style.setProperty("--dx", `${((Math.random() - 0.5) * 24).toFixed(1)}px`);
+      spark.style.setProperty("--dy", `${((Math.random() - 0.6) * 26).toFixed(1)}px`);
+      spark.style.setProperty("--delay", `${Math.round(Math.random() * 260)}ms`);
+      portalFlashes.appendChild(spark);
+      sparks.push(spark);
+    }
+    setTimeout(() => sparks.forEach((element) => element.remove()), 1000);
   }
 
   /* ---------- 4. 바닥에 닿았을 때 ---------- */

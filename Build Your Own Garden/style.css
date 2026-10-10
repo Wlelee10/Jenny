@@ -624,98 +624,150 @@ body.is-falling .abyss {
   mask-image: var(--sides);
 }
 
-/* 앞쪽 가장자리: 가는 선 + 바로 아래 빛 한 줄 */
+/* 빛나는 하늘색 선: 하얀 심 + 푸른 빛이 번지고 양끝으로 사라짐 */
 .portal-edge {
-  top: -0.5px;
-  height: 1px;
+  top: -1px;
+  height: 2px;
+  border-radius: 2px;
 
-  background: rgba(0, 0, 0, 0.3);
+  background: linear-gradient(to right,
+    rgba(120, 190, 255, 0) 0%,
+    rgba(120, 190, 255, 0.85) 18%,
+    #dff1ff 42%,
+    #ffffff 50%,
+    #dff1ff 58%,
+    rgba(120, 190, 255, 0.85) 82%,
+    rgba(120, 190, 255, 0) 100%);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95),
-    0 -1px 0 rgba(255, 255, 255, 0.5);
+    0 0 4px 1px rgba(110, 185, 255, 0.9),
+    0 0 14px 3px rgba(80, 160, 255, 0.55),
+    0 0 36px 8px rgba(100, 175, 255, 0.28);
 
   -webkit-mask-image: var(--sides);
   mask-image: var(--sides);
 }
 
-/* 이미지가 많이 들어갈수록 막 전체가 은은하게 밝아짐 */
+/* 이미지가 많이 들어갈수록 선 전체가 더 밝게 빛남 */
 .portal-glow {
-  top: -26px;
-  height: 36px;
+  top: -22px;
+  height: 44px;
 
-  background: radial-gradient(ellipse 50% 60% at 50% 72%,
-    rgba(255, 255, 255, 1) 0%,
-    rgba(255, 255, 255, 0.55) 45%,
-    rgba(255, 255, 255, 0) 100%);
+  background: radial-gradient(ellipse 50% 50% at 50% 50%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(150, 205, 255, 0.6) 30%,
+    rgba(110, 180, 255, 0.18) 60%,
+    rgba(110, 180, 255, 0) 100%);
 
-  opacity: calc(var(--energy) * 0.9);
-  filter: blur(4px);
+  opacity: calc(0.25 + var(--energy) * 0.75);
+  filter: blur(6px);
 
   -webkit-mask-image: var(--sides);
   mask-image: var(--sides);
 }
 
-/* 물결은 막(선 위쪽) 위에서만 퍼짐 */
-.portal-flashes {
-  bottom: 0;
-  height: var(--depth);
-  overflow: hidden;
+/* 반짝임은 선을 중심으로 위아래로 퍼짐 */
+.portal-line > .portal-flashes {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0;
+  overflow: visible;
 }
 
 
 
 /* =========================================
-   PORTAL RIPPLE (이미지가 막을 통과할 때 퍼지는 물결)
+   PORTAL SPARKLE (이미지가 선을 통과하는 순간 반짝)
+   가로로 번지는 빛줄기 + 네 갈래 별빛 + 작은 반짝이들
 ========================================= */
 
 .portal-flash {
   position: absolute;
-  bottom: 0;
+  top: 0;
   width: var(--flash-w, 120px);
-  height: calc(var(--flash-w, 120px) * 0.2);
+  height: 0;
 
-  transform: translate(-50%, 50%);
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
-/* 원근으로 납작한 동심원 두 겹 */
-.portal-flash::before,
+/* 가로 빛줄기 */
+.portal-flash::before {
+  content: "";
+  position: absolute;
+  left: -70%;
+  right: -70%;
+  top: -2px;
+  height: 4px;
+  border-radius: 4px;
+
+  background: linear-gradient(to right,
+    rgba(130, 195, 255, 0) 0%,
+    rgba(130, 195, 255, 0.9) 30%,
+    #ffffff 50%,
+    rgba(130, 195, 255, 0.9) 70%,
+    rgba(130, 195, 255, 0) 100%);
+  box-shadow: 0 0 12px 3px rgba(110, 185, 255, 0.6);
+
+  opacity: 0;
+  transform: scaleX(0.1);
+  animation: portal-streak 760ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+/* 네 갈래 별빛 */
 .portal-flash::after {
   content: "";
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 0;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
 
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.05),
-    inset 0 0 12px rgba(255, 255, 255, 0.6);
+  background:
+    radial-gradient(circle, #ffffff 0 7%, rgba(170, 215, 255, 0.95) 13%, rgba(120, 185, 255, 0) 42%),
+    linear-gradient(to right, rgba(190, 225, 255, 0) 0%, #ffffff 50%, rgba(190, 225, 255, 0) 100%) center / 100% 2px no-repeat,
+    linear-gradient(to bottom, rgba(190, 225, 255, 0) 0%, #ffffff 50%, rgba(190, 225, 255, 0) 100%) center / 2px 100% no-repeat;
+  filter: drop-shadow(0 0 6px rgba(120, 185, 255, 0.9));
 
   opacity: 0;
-  transform: scale(0.15);
-  animation: portal-ripple 1100ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  transform: scale(0.2) rotate(0deg);
+  animation: portal-star 720ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
 }
 
-.portal-flash::after {
-  border-color: rgba(255, 255, 255, 0.7);
-  animation-delay: 150ms;
-  animation-duration: 1300ms;
+/* 주변의 작은 반짝이 */
+.portal-spark {
+  position: absolute;
+  top: 0;
+  width: var(--spark, 8px);
+  height: var(--spark, 8px);
+  margin: calc(var(--spark, 8px) / -2) 0 0 calc(var(--spark, 8px) / -2);
+
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0 22%, rgba(150, 205, 255, 0.9) 40%, rgba(120, 185, 255, 0) 72%);
+  pointer-events: none;
+
+  opacity: 0;
+  animation: portal-twinkle 620ms ease-out forwards;
+  animation-delay: var(--delay, 0ms);
 }
 
-@keyframes portal-ripple {
-  0% {
-    opacity: 0;
-    transform: scale(0.15);
-  }
+@keyframes portal-streak {
+  0%   { opacity: 0; transform: scaleX(0.1); }
+  15%  { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1.35) scaleY(0.4); }
+}
 
-  12% {
-    opacity: 1;
-  }
+@keyframes portal-star {
+  0%   { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  20%  { opacity: 1; transform: scale(1) rotate(20deg); }
+  100% { opacity: 0; transform: scale(0.5) rotate(60deg); }
+}
 
-  100% {
-    opacity: 0;
-    transform: scale(1.7);
-  }
+@keyframes portal-twinkle {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  30%  { opacity: 1; transform: translate(var(--dx, 0), var(--dy, 0)) scale(1); }
+  100% { opacity: 0; transform: translate(calc(var(--dx, 0) * 1.4), calc(var(--dy, 0) * 1.6)) scale(0.2); }
 }
 
 
