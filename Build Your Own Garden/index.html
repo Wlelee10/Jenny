@@ -94,13 +94,6 @@
 
     <div class="work-panel ui" id="workPanel"></div>
 
-    <!-- 미리보기: 라이브러리에서 클릭한 조각을 크게 -->
-    <div class="preview ui" id="preview">
-      <img class="preview-image" id="previewImage" alt="" draggable="false" hidden />
-      <span class="preview-number" id="previewNumber"></span>
-      <span class="preview-empty" id="previewEmpty">PREVIEW</span>
-    </div>
-
     <!-- 캔버스 툴 -->
     <div class="toolbar ui" id="toolbar" role="toolbar" aria-orientation="vertical">
       <button class="tool" type="button" data-tool="color" data-tip="CANVAS COLOR" aria-label="Canvas color">
@@ -120,12 +113,6 @@
       </button>
       <button class="tool" type="button" data-tool="cut" data-tip="CUT SHAPE" data-shortcut="L" aria-label="Cut into a shape" data-needs-single>
         <svg viewBox="0 0 18 18"><path d="M9 3.2c3.6 0 6.3 1.7 6.3 3.9S12.6 11 9 11c-1 0-2-.1-2.8-.4" stroke-dasharray="2 1.8" /><path d="M5.1 9.7C3.6 9 2.7 8.1 2.7 7.1c0-1.6 1.6-3 4.1-3.6" stroke-dasharray="2 1.8" /><circle cx="5.2" cy="12.4" r="1.5" /><path d="M5.6 13.8c.4 1.3-.2 2.3-1.3 2.6" /></svg>
-      </button>
-      <button class="tool" type="button" data-tool="forward" data-tip="FORWARD" data-key="]" aria-label="Bring forward" data-needs-selection>
-        <svg viewBox="0 0 18 18"><rect x="3" y="7" width="8" height="8" rx="1.3" /><rect x="7" y="3" width="8" height="8" rx="1.3" class="tool-fill" /></svg>
-      </button>
-      <button class="tool" type="button" data-tool="backward" data-tip="BACKWARD" data-key="[" aria-label="Send backward" data-needs-selection>
-        <svg viewBox="0 0 18 18"><rect x="7" y="3" width="8" height="8" rx="1.3" class="tool-fill" /><rect x="3" y="7" width="8" height="8" rx="1.3" class="tool-cover" /></svg>
       </button>
     </div>
 

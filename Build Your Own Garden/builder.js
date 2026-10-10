@@ -17,10 +17,6 @@
   const libraryScroll = $("#libraryScroll");
   const libraryGrid = $("#libraryGrid");
   const workPanel = $("#workPanel");
-  const preview = $("#preview");
-  const previewImage = $("#previewImage");
-  const previewNumber = $("#previewNumber");
-  const previewEmpty = $("#previewEmpty");
   const toolbar = $("#toolbar");
   const layersPanel = $("#layers");
   const layersList = $("#layersList");
@@ -62,7 +58,7 @@
   const UNITS = 1000;            // 캔버스 내부 좌표 (화면 크기가 바뀌어도 그대로)
   const TOOL_SIZE = 38;          // 툴 버튼 한 칸
   const GAP = 16;                // 캔버스와 양옆 칸 사이
-  const RIGHT_W = 170;           // 오른쪽 칸 (툴바 · 숫자)
+  const RIGHT_W = 190;           // 오른쪽 칸 (숫자 · FINISH)
   const DEFAULT_ITEM = 0.32;     // 캔버스에 처음 놓일 때 크기 (캔버스 대비)
   const MIN_ITEM = 16;           // 캔버스 조각 최소 크기 (units)
   const SNAP_PX = 6;             // 중앙 정렬에 붙는 거리
@@ -145,7 +141,6 @@
 
   const pieces = [];              // 떨어진 조각 (fragment 1개당 1개) → 라이브러리로 날아감
   const cells = [];               // 라이브러리 칸
-  let previewId = null;
 
   // 캔버스 위 조각 (배열 순서 = 레이어 순서, 마지막이 맨 위)
   // { uid, id, x, y, w, h, rotation, flip, crop: { l, t, r, b }, mask, locked, hidden, group, name }
@@ -192,41 +187,38 @@
     const panelLeft = margin + libraryWidth + 14;
     const panel = { left: panelLeft, top: margin, width: vw - panelLeft - margin, height: vh - margin * 2 };
 
-    // 캔버스 크기: 높이 기준, 폭이 모자라면 줄임 (미리보기 = 캔버스의 약 1/4)
+    // 캔버스 크기: 높이 기준, 폭이 모자라면 줄임
+    // [툴바 · 레이어 | 캔버스 | 숫자 · FINISH]
     const pad = clamp(panel.height * 0.07, 22, 70);
-    const previewRatio = 0.31;
+    const leftRatio = 0.25;
     const byHeight = panel.height - pad * 2;
-    const byWidth = (panel.width - pad * 2 - GAP * 2 - RIGHT_W) / (1 + previewRatio);
+    const byWidth = (panel.width - pad * 2 - GAP * 2 - RIGHT_W) / (1 + leftRatio);
     const size = Math.max(240, Math.min(byHeight, byWidth));
-    const previewSize = clamp(size * previewRatio, 130, 320);
+    const leftWidth = clamp(size * leftRatio, 150, 220);
 
-    const groupWidth = previewSize + GAP + size + GAP + RIGHT_W;
+    const groupWidth = leftWidth + GAP + size + GAP + RIGHT_W;
     const groupLeft = panelLeft + Math.max(pad, (panel.width - groupWidth) / 2);
     const top = margin + (panel.height - size) / 2;
 
-    const canvasBox = { left: groupLeft + previewSize + GAP, top, width: size, height: size };
+    const canvasBox = { left: groupLeft + leftWidth + GAP, top, width: size, height: size };
+    const leftEdge = canvasBox.left - GAP;
     const right = canvasBox.left + size + GAP;
-    const layersWidth = previewSize * 0.86;
-    const layersHeight = Math.max(140, size * 0.4);
+    const layersHeight = Math.max(160, size * 0.43);
 
     rects = {
       library: { left: margin, top: margin, width: libraryWidth, height: vh - margin * 2 },
       panel,
       canvas: canvasBox,
-      preview: { left: groupLeft, top, width: previewSize, height: previewSize },
+      // 툴바: 캔버스 왼쪽 위, 레이어와 오른쪽 끝을 맞춤
+      toolbar: { left: leftEdge - TOOL_SIZE, top, width: TOOL_SIZE },
       layers: {
-        left: canvasBox.left - GAP - layersWidth,
+        left: leftEdge - leftWidth,
         top: top + size - layersHeight,
-        width: layersWidth,
+        width: leftWidth,
         height: layersHeight
       },
-      toolbar: { left: right, top, width: TOOL_SIZE },
-      info: {
-        left: right + TOOL_SIZE * 0.6,
-        top: top + size * 0.72,
-        width: RIGHT_W - TOOL_SIZE * 0.6,
-        height: size * 0.28
-      }
+      // 숫자 · FINISH: 오른쪽 칸 한가운데
+      info: { left: right, top, width: RIGHT_W, height: size }
     };
   }
 
@@ -242,7 +234,6 @@
 
     place(library, rects.library);
     place(workPanel, rects.panel);
-    place(preview, rects.preview);
     place(canvas, rects.canvas);
     place(overlay, rects.canvas);
     place(layersPanel, rects.layers);
@@ -318,20 +309,11 @@
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, w, h, rect };
   }
 
-  function previewBox(id) {
-    const rect = preview.getBoundingClientRect();
-    const { w, h } = fit(aspectOf(id), rect.width * 0.8);
-    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, w, h };
-  }
-
-  function showPreview(id) {
-    previewId = id;
-    previewImage.src = largeSrc(id);
-    previewImage.hidden = false;
-    previewNumber.textContent = `#${pad2(id)}`;
-    previewEmpty.hidden = true;
+  // 라이브러리에서 마지막으로 누른 칸 표시
+  function markCell(id) {
     cells.forEach((cell) => cell.classList.toggle("is-previewed", Number(cell.dataset.id) === id));
   }
+
 
   /* =========================================
      ENTRY: 떨어진 조각이 라이브러리 칸으로 날아감
@@ -392,8 +374,8 @@
   }
 
   /* =========================================
-     DRAG: 라이브러리 / 미리보기에서 조각 들기
-     누르고 움직이지 않으면 클릭 → 미리보기
+     DRAG: 라이브러리에서 조각 들기
+     누르고 움직이지 않으면 클릭 → 그 칸 표시
   ========================================= */
 
   function canvasDims(aspect) {
@@ -410,12 +392,6 @@
     press = { id, x: event.clientX, y: event.clientY, box: () => cellBox(id) };
   });
 
-  preview.addEventListener("pointerdown", (event) => {
-    if (!previewId || drag || action || event.button !== 0) return;
-    event.preventDefault();
-    const id = previewId;
-    press = { id, x: event.clientX, y: event.clientY, box: () => previewBox(id) };
-  });
 
   // 두 번 클릭하면 캔버스 가운데에 바로 놓기
   libraryGrid.addEventListener("dblclick", (event) => {
@@ -433,7 +409,7 @@
     const { id, box, x: pressX, y: pressY } = press;
     const start = box();
     press = null;
-    showPreview(id);
+    markCell(id);
 
     drag = {
       element: makeGhost(id),
@@ -457,7 +433,7 @@
   }
 
   function endPress() {
-    showPreview(press.id);
+    markCell(press.id);
     press = null;
   }
 
@@ -2081,6 +2057,60 @@
     return true;
   }
 
+  /* ---------- 복사 · 붙여넣기 (⌘/Ctrl + C · V) ---------- */
+
+  let clipboard = null;
+
+  function copySelection() {
+    const list = selectedItems();
+    if (!list.length) return false;
+
+    // 통째로 복사된 그룹만 그룹으로 기억
+    const copiedGroups = groups.filter((group) =>
+      membersOf(group.gid).every((member) => list.includes(member))
+    );
+
+    clipboard = {
+      items: JSON.parse(JSON.stringify(list)),
+      groups: JSON.parse(JSON.stringify(copiedGroups)),
+      pastes: 0
+    };
+    return true;
+  }
+
+  function pasteClipboard() {
+    if (!clipboard) return;
+    exitModes();
+
+    // 붙여넣을 때마다 조금씩 비켜서 쌓임
+    clipboard.pastes += 1;
+    const offset = 28 * clipboard.pastes;
+
+    const newGroups = new Map();
+    clipboard.groups.forEach((group) => {
+      const gid = nextGid++;
+      newGroups.set(group.gid, gid);
+      groups.push({ gid, name: `${group.name} COPY`.slice(0, 40), collapsed: group.collapsed });
+    });
+
+    const pasted = clipboard.items.map((item) => ({
+      ...JSON.parse(JSON.stringify(item)),
+      uid: nextUid++,
+      locked: false,
+      hidden: false,
+      group: newGroups.get(item.group) ?? null,
+      x: item.x + offset,
+      y: item.y + offset
+    }));
+
+    // 맨 위 레이어에 원래 순서대로
+    items.push(...pasted);
+    setSelection(pasted.map((item) => item.uid));
+    startTimer();
+    renderItems();
+    commit();
+  }
+
   function moveLayer(direction) {
     const list = selectedItems();
     if (!list.length) return;
@@ -2180,8 +2210,9 @@
 
     const buttonRect = button.getBoundingClientRect();
     const popoverRect = popover.getBoundingClientRect();
-    let left = buttonRect.right + 12;
-    if (left + popoverRect.width > window.innerWidth - 8) left = buttonRect.left - popoverRect.width - 12;
+    // 툴바가 캔버스 왼쪽에 있으므로 툴바 왼쪽에 열림 (자리가 없으면 오른쪽)
+    let left = buttonRect.left - popoverRect.width - 12;
+    if (left < 8) left = buttonRect.right + 12;
 
     popover.style.left = `${left}px`;
     popover.style.top = `${clamp(
@@ -2322,11 +2353,6 @@
       if (picked && picked[3] > 0) return picked;
     }
 
-    if (element === preview && !previewImage.hidden) {
-      const picked = containedPixel(previewImage, x, y);
-      if (picked && picked[3] > 0) return picked;
-    }
-
     if (element === canvas) return parseColor(background);
     if (element === builderBg || element === builder) return backgroundAt(y);
 
@@ -2441,6 +2467,7 @@
      ⌘/Ctrl + ]        레이어 위로
      ⌘/Ctrl + [        레이어 아래로
      ⌘/Ctrl + D        복제
+     ⌘/Ctrl + C · V    복사 · 붙여넣기
      ⌘/Ctrl + A        전체 선택
      ⌘/Ctrl + G        그룹 (⇧: 그룹 풀기)
      ⌥/Alt + 드래그    복제하면서 이동
@@ -2496,6 +2523,23 @@
       if (idle) {
         exitModes();
         duplicateSelection();
+      }
+      return;
+    }
+
+    // 선택된 조각이 있을 때만 가로챔 (아니면 브라우저 기본 복사)
+    if (mod && code === "KeyC") {
+      if (idle && !cropping && !cutting && selectedItems().length) {
+        event.preventDefault();
+        copySelection();
+      }
+      return;
+    }
+
+    if (mod && code === "KeyV") {
+      if (idle && clipboard) {
+        event.preventDefault();
+        pasteClipboard();
       }
       return;
     }
@@ -2620,7 +2664,7 @@
   builder.addEventListener("pointerdown", (event) => {
     if (event.target.closest(".popover, .toolbar")) return;
     closePopovers();
-    if (event.target.closest(".sel-frame, .library-cell, .preview, .info, .layers")) return;
+    if (event.target.closest(".sel-frame, .library-cell, .info, .layers")) return;
     exitModes();
     setSelection([]);
   });
@@ -2676,11 +2720,7 @@
     tool("crop").classList.toggle("is-open", Boolean(cropping));
     tool("cut").classList.toggle("is-open", Boolean(cutting));
 
-    if (list.length) {
-      const indexes = list.map((item) => items.indexOf(item));
-      tool("forward").disabled = indexes.every((index) => index >= items.length - list.length);
-      tool("backward").disabled = indexes.every((index) => index < list.length);
-    }
+
   }
 
   function loadImage(src) {
