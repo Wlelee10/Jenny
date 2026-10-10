@@ -132,10 +132,10 @@ const GLYPHS = {
   O: [".##.", "#..#", "#..#", "#..#", ".##."],
   R: ["###.", "#..#", "###.", "#.#.", "#..#"],
   W: ["#...#", "#...#", "#.#.#", "#.#.#", ".#.#."],
-  N: ["#..#", "##.#", "#.##", "#..#", "#..#"],
+  N: ["#...#", "##..#", "#.#.#", "#..##", "#...#"],
   G: ["####", "#...", "#.##", "#..#", "####"],
   A: [".##.", "#..#", "####", "#..#", "#..#"],
-  E: ["####", "#...", "###.", "#...", "####"]
+  E: ["###", "#..", "###", "#..", "###"]
 };
 
 const LINES = [
@@ -346,9 +346,34 @@ panel.addEventListener("pointermove", (event) => {
   parallax.tx = clamp(((event.clientX - panelRect.left) / panelRect.width - 0.5) * 2, -1, 1);
   parallax.ty = clamp(((event.clientY - panelRect.top) / panelRect.height - 0.5) * 2, -1, 1);
 
-  const tile = document.elementFromPoint(event.clientX, event.clientY)?.closest(".garden-tile") ?? null;
-  setActiveTile(tile && grid.contains(tile) ? tile : null);
+  setActiveTile(nearestTile(event.clientX, event.clientY));
 });
+
+// 커서에서 가장 가까운 이미지 (이미지 가장자리에서 REACH칸 안쪽이면 반응)
+const REACH = 0.75;
+
+function nearestTile(x, y) {
+  const rect = grid.getBoundingClientRect();
+  const cell = rect.width / COLUMNS;
+  const px = (x - rect.left) / cell;
+  const py = (y - rect.top) / cell;
+  const size = 0.92; // .garden-tile 크기 (칸 대비)
+
+  let best = null;
+  let bestDistance = REACH;
+  tiles.forEach((tile) => {
+    const col = Number(tile.dataset.col);
+    const row = Number(tile.dataset.row);
+    const dx = Math.max(col - px, 0, px - (col + size));
+    const dy = Math.max(row - py, 0, py - (row + size));
+    const distance = Math.hypot(dx, dy);
+    if (distance < bestDistance || (distance === 0 && best === null)) {
+      bestDistance = distance;
+      best = tile;
+    }
+  });
+  return best;
+}
 
 // 구멍: 이미지 한가운데, 완전히 맑은 부분이 커진 이미지보다 살짝 크게
 // (마스크는 반지름의 62%까지 완전히 투명 → 그 바깥으로 서서히 서리)
