@@ -558,13 +558,11 @@ body.is-falling .abyss {
 
 /* =========================================
    PORTAL LINE
-   선 위로 멀어지는 얇은 막(원근감) + 앞쪽 가장자리 선
-   이미지는 막 속으로 스며들고, 선 아래에서 fragment로 번져 나옴
+   빛나는 하늘색 선 하나 — 이미지는 선 위에서 스며들고, 선 아래에서 fragment로 번져 나옴
 ========================================= */
 
 .portal-line {
   --energy: 0;
-  --depth: 84px;                 /* 막이 선 위로 멀어지는 높이 */
   --sides: linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%);
 
   position: absolute;
@@ -581,47 +579,6 @@ body.is-falling .abyss {
   position: absolute;
   left: 3%;
   right: 3%;
-}
-
-/* 멀어지는 면: 앞쪽은 또렷하고 뒤로 갈수록 흐려짐 · 원근으로 좁아짐 */
-.portal-surface {
-  bottom: 0;
-  height: var(--depth);
-
-  clip-path: polygon(9% 0, 91% 0, 100% 100%, 0 100%);
-
-  background:
-    /* 원근에 맞춰 촘촘해지는 결 */
-    linear-gradient(to top,
-      rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 13px,
-      rgba(0, 0, 0, 0.035) 13px 14px, transparent 14px 32px,
-      rgba(0, 0, 0, 0.025) 32px 33px, transparent 33px 50px,
-      rgba(0, 0, 0, 0.018) 50px 51px, transparent 51px 64px,
-      rgba(0, 0, 0, 0.012) 64px 65px, transparent 65px),
-    linear-gradient(to top,
-      rgba(255, 255, 255, 0.72) 0%,
-      rgba(246, 246, 246, 0.42) 34%,
-      rgba(240, 240, 240, 0.12) 72%,
-      rgba(240, 240, 240, 0) 100%);
-
-  -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%), var(--sides);
-  -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%), var(--sides);
-  mask-composite: intersect;
-}
-
-/* 막 아래로 드리운 옅은 그림자 */
-.portal-under {
-  top: 0;
-  height: 70px;
-
-  background: linear-gradient(to bottom,
-    rgba(0, 0, 0, 0.075) 0%,
-    rgba(0, 0, 0, 0.03) 28%,
-    rgba(0, 0, 0, 0) 100%);
-
-  -webkit-mask-image: var(--sides);
-  mask-image: var(--sides);
 }
 
 /* 빛나는 하늘색 선: 가는 하얀 심이 가운데서 가장 밝고 양끝으로 사라짐 */
