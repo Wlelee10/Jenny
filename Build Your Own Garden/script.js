@@ -589,17 +589,9 @@ function startCollapse() {
 
   let energy = 0;
 
-  function flashAt(x, width, silent) {
+  // 이미지가 지나갈 때마다 선 전체가 더 밝게 빛남 (따로 빛 조각은 만들지 않음)
+  function flashAt() {
     energy = Math.min(energy + 0.3, 1.4);
-    if (silent) return;
-
-    // 통과한 자리가 환하게 빛났다가 사라짐
-    const flash = document.createElement("span");
-    flash.className = "portal-flash";
-    flash.style.left = `${x.toFixed(1)}px`;
-    flash.style.setProperty("--flash-w", `${Math.max(width * 2, 110).toFixed(0)}px`);
-    flash.addEventListener("animationend", () => flash.remove());
-    portalFlashes.appendChild(flash);
   }
 
   /* ---------- 4. 바닥에 닿았을 때 ---------- */
@@ -717,7 +709,7 @@ function startCollapse() {
 
   let elapsed = 0;
 
-  function simulate(dt, silent) {
+  function simulate(dt) {
     elapsed += dt;
     let active = 0;
 
@@ -758,11 +750,11 @@ function startCollapse() {
       const centerY = body.baseY + body.y;
       const { hh } = halfExtents(body);
 
-      // 선에 닿는 순간: 번쩍 + fragment 등장
+      // 선에 닿는 순간: 선이 밝아짐 + fragment 등장
       if (body.state === "falling" && centerY + hh >= lineY) {
         body.state = "transit";
         body.piece.classList.add("is-visible");
-        flashAt(body.baseX + body.x, body.w, silent);
+        flashAt();
       }
 
       // 완전히 통과: 타일은 사라지고 fragment만 남아 느려짐
@@ -791,7 +783,9 @@ function startCollapse() {
     const cameraY = scrollStart + (cameraEnd - scrollStart) * easeInOutCubic(progress);
     world.style.transform = `translate3d(0, ${(scrollStart - cameraY).toFixed(1)}px, 0)`;
 
-    portalLine.style.setProperty("--energy", energy.toFixed(3));
+    // 선 전체가 은은하게 반짝이도록 밝을 때 살짝 일렁임
+    const shimmer = energy > 0.05 ? (Math.random() - 0.5) * 0.12 * Math.min(energy, 1) : 0;
+    portalLine.style.setProperty("--energy", Math.max(0, energy + shimmer).toFixed(3));
 
     bodies.forEach((body) => {
       const transform =
@@ -833,7 +827,7 @@ function startCollapse() {
 
   // 동작 줄이기 설정: 애니메이션 없이 결과(쌓인 상태)만 바로 보여줌
   if (reduceMotion.matches) {
-    for (let i = 0; i < 60 * 20 && simulate(1 / 60, true) > 0; i++);
+    for (let i = 0; i < 60 * 20 && simulate(1 / 60) > 0; i++);
     elapsed = CAMERA_DELAY + CAMERA_DURATION;
     energy = 0;
     bodies.forEach((body) => { body.rotation = body.restRotation; });
@@ -849,7 +843,7 @@ function startCollapse() {
     const dt = Math.min((now - lastTime) / 1000, 1 / 30);
     lastTime = now;
 
-    const active = simulate(dt, false);
+    const active = simulate(dt);
     render();
 
     // 모두 자리 잡고 기울기 정리까지 끝나면 멈춤

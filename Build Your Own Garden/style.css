@@ -624,86 +624,60 @@ body.is-falling .abyss {
   mask-image: var(--sides);
 }
 
-/* 빛나는 하늘색 선: 하얀 심 + 푸른 빛이 번지고 양끝으로 사라짐 */
+/* 빛나는 하늘색 선: 가는 하얀 심이 가운데서 가장 밝고 양끝으로 사라짐 */
 .portal-edge {
-  top: -1px;
-  height: 2px;
+  top: -0.75px;
+  height: 1.5px;
   border-radius: 2px;
 
   background: linear-gradient(to right,
-    rgba(120, 190, 255, 0) 0%,
-    rgba(120, 190, 255, 0.85) 18%,
-    #dff1ff 42%,
+    rgba(90, 170, 255, 0) 0%,
+    rgba(90, 170, 255, 0.7) 14%,
+    #bfe2ff 36%,
     #ffffff 50%,
-    #dff1ff 58%,
-    rgba(120, 190, 255, 0.85) 82%,
-    rgba(120, 190, 255, 0) 100%);
+    #bfe2ff 64%,
+    rgba(90, 170, 255, 0.7) 86%,
+    rgba(90, 170, 255, 0) 100%);
   box-shadow:
-    0 0 4px 1px rgba(110, 185, 255, 0.9),
-    0 0 14px 3px rgba(80, 160, 255, 0.55),
-    0 0 36px 8px rgba(100, 175, 255, 0.28);
+    0 0 3px rgba(120, 190, 255, 0.95),
+    0 0 10px rgba(60, 145, 255, calc(0.35 + var(--energy) * 0.4));
 
   -webkit-mask-image: var(--sides);
   mask-image: var(--sides);
 }
 
-/* 이미지가 많이 들어갈수록 선 전체가 더 밝게 빛남 */
+/* 선 전체에서 위아래로 넓게 퍼지는 빛 — 이미지가 지나갈수록 밝아짐 */
 .portal-glow {
-  top: -22px;
-  height: 44px;
+  top: calc(var(--halo, 150px) / -2);
+  height: var(--halo, 150px);
+
+  background:
+    radial-gradient(ellipse 50% 50% at 50% 50%,
+      rgba(70, 150, 255, 0.42) 0%,
+      rgba(50, 130, 255, 0.2) 38%,
+      rgba(40, 120, 255, 0.06) 70%,
+      rgba(40, 120, 255, 0) 100%);
+
+  opacity: calc(0.35 + var(--energy) * 0.65);
+  filter: blur(8px);
+}
+
+/* 가운데의 밝은 빛 덩어리 */
+.portal-flashes {
+  top: -14px;
+  left: 30%;
+  right: 30%;
+  height: 28px;
 
   background: radial-gradient(ellipse 50% 50% at 50% 50%,
     rgba(255, 255, 255, 0.95) 0%,
-    rgba(150, 205, 255, 0.6) 30%,
-    rgba(110, 180, 255, 0.18) 60%,
-    rgba(110, 180, 255, 0) 100%);
+    rgba(180, 220, 255, 0.7) 25%,
+    rgba(90, 165, 255, 0.25) 55%,
+    rgba(90, 165, 255, 0) 100%);
 
-  opacity: calc(0.25 + var(--energy) * 0.75);
-  filter: blur(6px);
-
-  -webkit-mask-image: var(--sides);
-  mask-image: var(--sides);
-}
-
-/* 반짝임은 선을 중심으로 위아래로 퍼짐 */
-.portal-line > .portal-flashes {
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 0;
-  overflow: visible;
-}
-
-
-
-/* =========================================
-   PORTAL GLOW (이미지가 선을 통과하는 순간 그 자리가 환하게 빛남)
-========================================= */
-
-.portal-flash {
-  position: absolute;
-  top: -18px;
-  width: var(--flash-w, 120px);
-  height: 36px;
-
-  border-radius: 50%;
-  background: radial-gradient(ellipse 50% 50% at 50% 50%,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(170, 215, 255, 0.75) 28%,
-    rgba(110, 180, 255, 0.3) 55%,
-    rgba(110, 180, 255, 0) 100%);
-  filter: blur(4px);
-  pointer-events: none;
-
-  opacity: 0;
-  transform: translateX(-50%) scale(0.4, 0.5);
-  animation: portal-glow 900ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
-}
-
-@keyframes portal-glow {
-  0%   { opacity: 0; transform: translateX(-50%) scale(0.4, 0.5); }
-  18%  { opacity: 1; transform: translateX(-50%) scale(1.2, 1); }
-  100% { opacity: 0; transform: translateX(-50%) scale(1.8, 0.7); }
+  opacity: calc(0.45 + var(--energy) * 0.55);
+  transform: scaleX(calc(0.85 + var(--energy) * 0.25));
+  filter: blur(3px);
 }
 
 
