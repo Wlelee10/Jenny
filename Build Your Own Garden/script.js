@@ -151,6 +151,7 @@ const LINE_GAP = 0.6;       // 줄 사이
 const RIGHT_OVERHANG = 1;   // 1·3줄이 2줄보다 오른쪽으로 더 나감
 
 function layoutLetters() {
+  let letterCount = 0;
   const measured = LINES.map((line) => {
     const cells = [];
     let x = 0;
@@ -161,9 +162,10 @@ function layoutLetters() {
       }
       if (index > 0 && line.text[index - 1] !== " ") x += LETTER_GAP;
       const glyph = GLYPHS[char];
+      const letter = letterCount++;
       glyph.forEach((row, r) => {
         [...row].forEach((mark, c) => {
-          if (mark === "#") cells.push({ col: x + c, row: r });
+          if (mark === "#") cells.push({ col: x + c, row: r, letter, char, lc: c, lr: r });
         });
       });
       x += glyph[0].length;
@@ -177,15 +179,95 @@ function layoutLetters() {
   measured.forEach((line, index) => {
     const offset = line.align === "right" ? columns - line.width : 0;
     const top = index * (GLYPH_H + LINE_GAP);
-    line.cells.forEach((cell) => cells.push({ col: cell.col + offset, row: cell.row + top }));
+    line.cells.forEach((cell) => cells.push({ ...cell, col: cell.col + offset, row: cell.row + top }));
   });
 
-  // 위 → 아래, 왼쪽 → 오른쪽 순서로 이미지 번호를 붙임
   cells.sort((a, b) => a.row - b.row || a.col - b.col);
   return { cells, columns, rows: LINES.length * GLYPH_H + (LINES.length - 1) * LINE_GAP };
 }
 
+/* =========================================
+   어떤 이미지를 어느 칸에 놓을지
+   밝은 이미지는 흐린 유리에 묻혀 그 칸이 비어 보이므로:
+   - 어두운 이미지일수록 글자 윤곽이 드러나는 칸(끝, 모서리, 사선)에
+   - 밝은 이미지는 주변이 다른 이미지로 둘러싸인 칸에, 한 글자에 2장까지, 서로 붙지 않게
+   - 속이 비어 보이기 쉬운 O, R과 마침표에는 밝은 이미지를 놓지 않음
+========================================= */
+
+// 이미지별 밝기 (#01 ~ #200, 0~255, images-small의 평균 밝기)
+const IMAGE_LIGHTNESS = [
+  81, 89, 106, 80, 75, 89, 63, 90, 67, 53, 58, 67, 94, 127, 117, 111, 63, 72, 61, 109,
+  155, 149, 118, 142, 173, 180, 93, 153, 73, 122, 83, 78, 87, 94, 71, 88, 100, 87, 95, 69,
+  86, 88, 106, 90, 98, 83, 98, 58, 84, 99, 91, 86, 103, 118, 108, 127, 113, 106, 103, 45,
+  136, 171, 162, 143, 113, 70, 125, 69, 71, 86, 60, 74, 86, 57, 51, 60, 63, 66, 88, 62,
+  90, 166, 145, 70, 72, 99, 76, 92, 100, 114, 106, 121, 98, 133, 111, 104, 103, 87, 140, 70,
+  81, 110, 98, 107, 120, 126, 121, 79, 126, 115, 124, 110, 169, 152, 142, 94, 59, 108, 108, 94,
+  94, 103, 108, 104, 36, 50, 53, 81, 81, 110, 83, 58, 78, 98, 86, 129, 46, 61, 45, 79,
+  144, 126, 126, 97, 69, 76, 89, 93, 143, 121, 77, 125, 123, 66, 76, 80, 105, 92, 102, 90,
+  81, 85, 60, 90, 158, 123, 79, 104, 62, 65, 72, 68, 99, 99, 91, 113, 67, 87, 64, 78,
+  95, 92, 88, 116, 84, 89, 95, 87, 88, 72, 82, 122, 73, 92, 82, 109, 110, 75, 79, 70
+];
+const BRIGHT = 125;
+const NO_BRIGHT = new Set(["O", "R", "."]);
+
+function placeImages(cells) {
+  const key = (letter, c, r) => `${letter}:${c}:${r}`;
+  const filled = new Set(cells.map((cell) => key(cell.letter, cell.lc, cell.lr)));
+  const neighbors = (cell) => {
+    let count = 0;
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if ((dx || dy) && filled.has(key(cell.letter, cell.lc + dx, cell.lr + dy))) count++;
+      }
+    }
+    return count;
+  };
+
+  // 둘러싸인 칸부터 (같으면 여러 글자에 고르게 퍼지도록 섞음)
+  const spread = (i) => (i * 73) % cells.length;
+  const slots = cells
+    .map((cell, i) => ({ cell, i, around: neighbors(cell) }))
+    .sort((a, b) => b.around - a.around || spread(a.i) - spread(b.i));
+
+  const brightLeft = {};
+  cells.forEach((cell) => {
+    brightLeft[cell.letter] = NO_BRIGHT.has(cell.char) ? 0 : 2;
+  });
+
+  // 밝은 이미지끼리 붙어 있으면 그 부분이 통째로 비어 보임
+  const brightAt = new Set();
+  const touchesBright = (cell) => {
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (brightAt.has(key(cell.letter, cell.lc + dx, cell.lr + dy))) return true;
+      }
+    }
+    return false;
+  };
+
+  // 밝은 이미지부터 자리를 잡음
+  const order = IMAGE_LIGHTNESS.map((_, i) => i).sort((a, b) => IMAGE_LIGHTNESS[b] - IMAGE_LIGHTNESS[a]);
+  const taken = new Set();
+  const cellForImage = [];
+
+  order.forEach((image) => {
+    const bright = IMAGE_LIGHTNESS[image] > BRIGHT;
+    const slot =
+      slots.find((s) => !taken.has(s.i) && (!bright || (brightLeft[s.cell.letter] > 0 && !touchesBright(s.cell)))) ??
+      slots.find((s) => !taken.has(s.i));
+    taken.add(slot.i);
+    if (bright) {
+      brightLeft[slot.cell.letter] -= 1;
+      brightAt.add(key(slot.cell.letter, slot.cell.lc, slot.cell.lr));
+    }
+    cellForImage[image] = slot.cell;
+  });
+
+  return cellForImage;
+}
+
 const letters = layoutLetters();
+const cellForImage = placeImages(letters.cells);
 const COLUMNS = letters.columns;
 const ROWS = letters.rows;
 
@@ -229,7 +311,7 @@ gardenTypes.forEach((type) => {
     const fileName = `#${formattedNumber} ${type}_garden.png`;
     const imagePath = `images-small/${encodeURIComponent(fileName)}`;
 
-    const cell = letters.cells[imageNumber - 1];
+    const cell = cellForImage[imageNumber - 1];
     const tile = document.createElement("div");
     tile.className = "garden-tile";
     tile.dataset.number = imageNumber;
