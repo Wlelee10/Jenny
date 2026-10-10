@@ -522,9 +522,11 @@ animateGlass();
    → 선 아래로 같은 번호의 fragment가 나와 바닥에 쌓임
 ========================================= */
 
-const GRAVITY = 2400;           // px/s²
-const CAMERA_DELAY = 0.1;       // 초. 이미지가 먼저 움직이고 카메라가 뒤따름
-const CAMERA_DURATION = 1.2;    // 초. 인트로 → 선과 바닥이 보이는 곳까지
+const GRAVITY = 2000;           // px/s²
+const AIR_DRAG = 1.7;           // 공기 저항 (최고 속도 ≈ GRAVITY / AIR_DRAG)
+const WAVE = 1.05;              // 초. 글자 전체가 무너지는 데 걸리는 시간 (왼쪽 아래 → 오른쪽 위)
+const CAMERA_DELAY = 0.25;      // 초. 이미지가 먼저 움직이고 카메라가 뒤따름
+const CAMERA_DURATION = 2.0;    // 초. 인트로 → 선과 바닥이 보이는 곳까지 (떨어지는 속도에 맞춤)
 const MEMBRANE_DRAG = 0.4;      // 선을 통과하면서 느려지는 정도 (작을수록 많이 느려짐)
 const FRAGMENT_SIZE = () => clamp(window.innerWidth * 0.0215, 18, 40); // fragment 최종 크기(px)
 const PILE_OVERLAP = 0.7;       // 쌓일 때 겹치는 정도 (작을수록 촘촘하게 쌓임)
@@ -601,15 +603,12 @@ function startCollapse() {
 
   /* ---------- 2. 타일마다 물리 정보 ---------- */
 
-  const collapseCol = COLUMNS * (0.3 + Math.random() * 0.4);
-  const spread = 20 / COLUMNS;          // 칸 수가 달라도 퍼지는 폭은 비슷하게
   const fragmentSize = FRAGMENT_SIZE();
 
   const bodies = [...grid.children].map((tile, index) => {
     const rect = tile.getBoundingClientRect();
     const col = Number(tile.dataset.col);
     const row = Number(tile.dataset.row);
-    const side = (col - collapseCol) * spread;
 
     return {
       tile,
@@ -627,17 +626,20 @@ function startCollapse() {
       restRotation: 0,
       scale: 1,
 
-      // 아래 줄부터, 무너진 지점에서 가까운 곳부터 차례로 떨어짐
+      // 물결처럼 차례로: 아래 줄 · 왼쪽부터 대각선으로 무너짐
       delay:
-        ((ROWS - 1 - row) / (ROWS - 1)) * 0.68 +
-        Math.abs(side) * 0.02 +
-        Math.random() * 0.09,
+        (((ROWS - 1 - row) / (ROWS - 1)) * 0.55 + (col / COLUMNS) * 0.45) * WAVE +
+        Math.random() * 0.04,
 
-      vx: side * 9 + (Math.random() - 0.5) * 120,
-      vy: -Math.random() * 60,
-      vr: side * 4 + (Math.random() - 0.5) * 320,
+      // 거의 곧게 떨어지고, 종이처럼 살짝 좌우로 흔들리며 천천히 기울어짐
+      vx: (Math.random() - 0.5) * 16,
+      vy: 0,
+      vr: (Math.random() - 0.5) * 36,
+      swayAmp: 5 + Math.random() * 7,             // px
+      swayRate: 2.4 + Math.random() * 1.6,        // rad/s
+      swayPhase: Math.random() * Math.PI * 2,
 
-      wobble: (Math.random() - 0.5) * 5,
+      wobble: (Math.random() - 0.5) * 3,
       fragmentScale: fragmentSize / rect.width
     };
   });
@@ -823,9 +825,14 @@ function startCollapse() {
         body.state = "falling";
       }
 
-      body.vy += GRAVITY * dt;
-      body.x += body.vx * dt;
+      body.vy += (GRAVITY - AIR_DRAG * body.vy) * dt;
       body.y += body.vy * dt;
+
+      // 선을 지나기 전까지는 좌우로 살짝 흔들림
+      const sway = body.state === "fragment"
+        ? 0
+        : body.swayAmp * body.swayRate * Math.cos(body.swayRate * elapsed + body.swayPhase);
+      body.x += (body.vx + sway) * dt;
       body.vr *= body.state === "fragment" ? 0.985 : 0.995;
       body.rotation += body.vr * dt;
 
