@@ -56,9 +56,8 @@
 
   const FRAGMENT_COUNT = 200;
   const UNITS = 1000;            // 캔버스 내부 좌표 (화면 크기가 바뀌어도 그대로)
-  const TOOL_SIZE = 38;          // 툴 버튼 한 칸
+  const TOOL_COUNT = 6;          // 툴바 버튼 수
   const GAP = 16;                // 캔버스와 양옆 칸 사이
-  const RIGHT_W = 190;           // 오른쪽 칸 (숫자 · FINISH)
   const DEFAULT_ITEM = 0.32;     // 캔버스에 처음 놓일 때 크기 (캔버스 대비)
   const MIN_ITEM = 16;           // 캔버스 조각 최소 크기 (units)
   const SNAP_PX = 6;             // 중앙 정렬에 붙는 거리
@@ -182,43 +181,61 @@
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const margin = clamp(vw * 0.012, 10, 22);
-    const libraryWidth = clamp(vw * 0.19, 250, 380);
+    // 창이 작아지면 라이브러리 · 오른쪽 칸 · 툴바도 함께 줄어듦
+    const libraryWidth = clamp(vw * 0.19, 180, 380);
+    // 오른쪽 칸은 가장 긴 줄("200 AI FRAGMENTS")이 들어갈 만큼
+    const infoSize = clamp(vw * 0.0115, 11, 16);
+    const rightWidth = Math.ceil(infoSize * 9.8 + 12);
 
     const panelLeft = margin + libraryWidth + 14;
     const panel = { left: panelLeft, top: margin, width: vw - panelLeft - margin, height: vh - margin * 2 };
 
     // 캔버스 크기: 높이 기준, 폭이 모자라면 줄임
     // [툴바 · 레이어 | 캔버스 | 숫자 · FINISH]
-    const pad = clamp(panel.height * 0.07, 22, 70);
+    const pad = clamp(Math.min(panel.height, panel.width) * 0.06, 14, 70);
+    const gap = clamp(vw * 0.011, 10, GAP);
     const leftRatio = 0.25;
     const byHeight = panel.height - pad * 2;
-    const byWidth = (panel.width - pad * 2 - GAP * 2 - RIGHT_W) / (1 + leftRatio);
-    const size = Math.max(240, Math.min(byHeight, byWidth));
-    const leftWidth = clamp(size * leftRatio, 150, 220);
+    const minLeft = 128;
+    const room = panel.width - pad * 2 - gap * 2 - rightWidth;
+    // 왼쪽 칸(툴바 · 레이어)은 최소 폭이 있으므로, 좁을 때는 그만큼 빼고 캔버스 크기를 정함
+    let size = Math.min(byHeight, room / (1 + leftRatio));
+    if (size * leftRatio < minLeft) size = Math.min(byHeight, room - minLeft);
+    size = Math.max(200, size);
+    const leftWidth = clamp(size * leftRatio, minLeft, 220);
 
-    const groupWidth = leftWidth + GAP + size + GAP + RIGHT_W;
+    const groupWidth = leftWidth + gap + size + gap + rightWidth;
     const groupLeft = panelLeft + Math.max(pad, (panel.width - groupWidth) / 2);
     const top = margin + (panel.height - size) / 2;
 
-    const canvasBox = { left: groupLeft + leftWidth + GAP, top, width: size, height: size };
-    const leftEdge = canvasBox.left - GAP;
-    const right = canvasBox.left + size + GAP;
-    const layersHeight = Math.max(160, size * 0.43);
+    const canvasBox = { left: groupLeft + leftWidth + gap, top, width: size, height: size };
+    const leftEdge = canvasBox.left - gap;
+    const right = canvasBox.left + size + gap;
+
+    // 툴바는 캔버스 높이에 맞춰 버튼 크기를 줄이고, 레이어는 툴바와 겹치지 않게 아래쪽에
+    const toolSize = clamp(Math.floor(size / 13), 26, 38);
+    const toolbarHeight = toolSize * TOOL_COUNT;
+    const layersHeight = Math.max(56, Math.min(size * 0.45, size - toolbarHeight - 10));
+
+    builder.style.setProperty("--tool-size", `${toolSize}px`);
+    builder.style.setProperty("--info-size", `${infoSize.toFixed(1)}px`);
+    library.classList.toggle("is-narrow", libraryWidth < 230);
 
     rects = {
       library: { left: margin, top: margin, width: libraryWidth, height: vh - margin * 2 },
       panel,
       canvas: canvasBox,
       // 툴바: 캔버스 왼쪽 위, 레이어와 오른쪽 끝을 맞춤
-      toolbar: { left: leftEdge - TOOL_SIZE, top, width: TOOL_SIZE },
+      toolbar: { left: leftEdge - toolSize, top, width: toolSize },
+      // 아주 작은 창에서도 툴바를 가리지 않음 (필요하면 캔버스 아래로 조금 내려감)
       layers: {
         left: leftEdge - leftWidth,
-        top: top + size - layersHeight,
+        top: Math.max(top + size - layersHeight, top + toolbarHeight + 10),
         width: leftWidth,
         height: layersHeight
       },
       // 숫자 · FINISH: 오른쪽 칸 한가운데
-      info: { left: right, top, width: RIGHT_W, height: size }
+      info: { left: right, top, width: rightWidth, height: size }
     };
   }
 
@@ -2820,6 +2837,9 @@
   document.addEventListener("garden:resume", () => {
     builder.classList.remove("is-finished");
     active = true;
+    // 결과 화면에 있는 동안 창 크기가 바뀌었을 수 있으니 다시 배치
+    computeLayout();
+    applyLayout(true);
     readCanvasRect();
     updateUI();
   });
@@ -2847,16 +2867,19 @@
      RESIZE
   ========================================= */
 
-  let resizeTimer = null;
+  // 창 크기를 바꾸는 동안 실시간으로 따라감 (한 프레임에 한 번)
+  let resizeFrame = null;
+
+  function relayout() {
+    resizeFrame = null;
+    if (builder.hidden || !rects) return;
+    computeLayout();
+    applyLayout(true);
+    readCanvasRect();
+  }
 
   window.addEventListener("resize", () => {
-    if (!active) return;
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      computeLayout();
-      applyLayout(true);
-      readCanvasRect();
-    }, 150);
+    if (resizeFrame === null) resizeFrame = requestAnimationFrame(relayout);
   });
 
   /* =========================================

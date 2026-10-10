@@ -616,8 +616,8 @@
 
 .tool {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: var(--tool-size, 38px);
+  height: var(--tool-size, 38px);
   padding: 0;
 
   display: grid;
@@ -734,9 +734,9 @@
   display: grid;
   place-content: center;
   justify-items: start;
-  gap: 30px;
+  gap: calc(var(--info-size, 16px) * 1.9);
 
-  font-size: 16px;
+  font-size: var(--info-size, 16px);
   letter-spacing: 0.02em;
 }
 
@@ -831,6 +831,11 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
+}
+
+/* 창이 좁아 라이브러리가 좁을 때는 한 줄에 3개 */
+.library.is-narrow .library-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .library-cell {

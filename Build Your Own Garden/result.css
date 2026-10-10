@@ -641,21 +641,42 @@
    RESPONSIVE
 ========================================= */
 
+/* 창이 줄어들면 폴더가 화면을 더 넓게 씀 (정원과 정보는 계속 나란히) */
+@media (max-width: 1200px) {
+  .folders {
+    width: 84%;
+  }
+}
+
 @media (max-width: 900px) {
   .folders {
-    width: calc(100% - 32px);
+    width: calc(100% - 40px);
   }
 
+  .card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .build-view {
+    gap: clamp(18px, 3.5%, 40px);
+  }
+
+  .result-canvas {
+    width: min(100cqh, 58cqw);
+  }
+}
+
+/* 아주 좁은 창: 정원 위, 정보 아래 */
+@media (max-width: 620px) {
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .build-view {
     flex-direction: column;
-    justify-content: center;
   }
 
   .result-canvas {
-    width: min(100cqw, 62cqh);
+    width: min(100cqw, 58cqh);
   }
 }
