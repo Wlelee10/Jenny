@@ -810,6 +810,10 @@ function startCollapse() {
   }
 
   function finish() {
+    // 애니메이션이 멈춰도 빛이 그 밝기로 굳지 않게: 천천히 잦아들도록 넘김
+    portalLine.classList.add("is-resting");
+    portalLine.style.setProperty("--energy", "0");
+
     // 다음 단계(builder.js)가 쌓인 조각을 그대로 이어받을 수 있도록 알림
     document.dispatchEvent(new CustomEvent("garden:landed", {
       detail: {

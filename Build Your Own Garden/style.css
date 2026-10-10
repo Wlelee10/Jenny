@@ -558,7 +558,7 @@ body.is-falling .abyss {
 
 /* =========================================
    PORTAL LINE
-   빛나는 민트색 선 하나 — 이미지는 선 위에서 스며들고, 선 아래에서 fragment로 번져 나옴
+   빛나는 하늘색 선 하나 — 이미지는 선 위에서 스며들고, 선 아래에서 fragment로 번져 나옴
 ========================================= */
 
 .portal-line {
@@ -581,23 +581,25 @@ body.is-falling .abyss {
   right: 3%;
 }
 
-/* 빛나는 민트색 선: 가는 하얀 심이 가운데서 가장 밝고 양끝으로 사라짐 */
+/* 빛나는 하늘색 선: 가는 하얀 심이 가운데서 가장 밝고 양끝으로 사라짐 */
 .portal-edge {
   top: -0.75px;
   height: 1.5px;
   border-radius: 2px;
 
   background: linear-gradient(to right,
-    rgba(70, 225, 190, 0) 0%,
-    rgba(70, 225, 190, 0.7) 14%,
-    #c6fbec 36%,
+    rgba(90, 170, 255, 0) 0%,
+    rgba(90, 170, 255, 0.7) 14%,
+    #bfe2ff 36%,
     #ffffff 50%,
-    #c6fbec 64%,
-    rgba(70, 225, 190, 0.7) 86%,
-    rgba(70, 225, 190, 0) 100%);
+    #bfe2ff 64%,
+    rgba(90, 170, 255, 0.7) 86%,
+    rgba(90, 170, 255, 0) 100%);
   box-shadow:
-    0 0 3px rgba(110, 235, 200, 0.95),
-    0 0 10px rgba(30, 200, 160, calc(0.35 + var(--energy) * 0.4));
+    0 0 3px rgba(120, 190, 255, 0.95),
+    0 0 10px rgba(60, 145, 255, calc(0.35 + var(--energy) * 0.4));
+
+  transition: box-shadow 260ms ease-out;
 
   -webkit-mask-image: var(--sides);
   mask-image: var(--sides);
@@ -610,13 +612,14 @@ body.is-falling .abyss {
 
   background:
     radial-gradient(ellipse 50% 50% at 50% 50%,
-      rgba(50, 215, 175, 0.42) 0%,
-      rgba(35, 195, 160, 0.2) 38%,
-      rgba(30, 185, 150, 0.06) 70%,
-      rgba(30, 185, 150, 0) 100%);
+      rgba(70, 150, 255, 0.42) 0%,
+      rgba(50, 130, 255, 0.2) 38%,
+      rgba(40, 120, 255, 0.06) 70%,
+      rgba(40, 120, 255, 0) 100%);
 
-  opacity: calc(0.35 + var(--energy) * 0.65);
+  opacity: calc(0.3 + var(--energy) * 0.7);
   filter: blur(8px);
+  transition: opacity 260ms ease-out;
 }
 
 /* 가운데의 밝은 빛 덩어리 */
@@ -628,13 +631,24 @@ body.is-falling .abyss {
 
   background: radial-gradient(ellipse 50% 50% at 50% 50%,
     rgba(255, 255, 255, 0.95) 0%,
-    rgba(190, 250, 232, 0.7) 25%,
-    rgba(70, 220, 185, 0.25) 55%,
-    rgba(70, 220, 185, 0) 100%);
+    rgba(180, 220, 255, 0.7) 25%,
+    rgba(90, 165, 255, 0.25) 55%,
+    rgba(90, 165, 255, 0) 100%);
 
   opacity: calc(0.45 + var(--energy) * 0.55);
   transform: scaleX(calc(0.85 + var(--energy) * 0.25));
   filter: blur(3px);
+  transition: opacity 260ms ease-out, transform 260ms ease-out;
+}
+
+
+
+/* 다 떨어진 뒤: 빛이 천천히 잦아들어 은은한 선만 남음 */
+.portal-line.is-resting > .portal-edge,
+.portal-line.is-resting > .portal-glow,
+.portal-line.is-resting > .portal-flashes {
+  transition-duration: 1600ms;
+  transition-timing-function: cubic-bezier(0.33, 0, 0.2, 1);
 }
 
 
