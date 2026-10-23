@@ -364,20 +364,24 @@
 }
 
 /* 이름이 비어 있을 때: 빨간 글씨 + 점선 + 깜빡이는 커서로 눈에 띄게 */
+.title-field {
+  --title-red: #e3262f; /* 이름 칸만 조금 더 밝은 빨강 */
+}
+
 .title-field.is-empty {
-  color: var(--result-red);
+  color: var(--title-red);
 }
 
 .title-field.is-empty input {
-  border-bottom-color: var(--result-red);
+  border-bottom-color: var(--title-red);
 }
 
 .title-field.is-empty input::placeholder {
-  color: var(--result-red);
+  color: var(--title-red);
 }
 
 .title-field.is-empty input:focus::placeholder {
-  color: rgba(179, 20, 30, 0.35);
+  color: rgba(227, 38, 47, 0.35);
 }
 
 .title-caret {
@@ -386,7 +390,7 @@
   width: 2px;
   height: 0.95em;
   margin-left: -1px;
-  background: var(--result-red);
+  background: var(--title-red);
   animation: title-caret-blink 1s steps(1) infinite;
 }
 

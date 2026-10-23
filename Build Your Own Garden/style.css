@@ -484,8 +484,18 @@ body.is-falling .glass {
   cursor: pointer;
 }
 
-.opening-skip:hover,
 .opening-sound:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* [ SKIP ]: 평소엔 연한 회색 글자, 올리면 진해짐 */
+.opening-skip {
+  color: #a6a6a6;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+
+.opening-skip:hover {
+  color: var(--ink);
   background: rgba(255, 255, 255, 0.95);
 }
 
@@ -658,15 +668,15 @@ body.is-falling .abyss {
   --glow: 0;
 }
 
-/* 넓게 퍼지는 흰 빛 */
+/* 넓게 퍼지는 빛 (아주 살짝 푸른 기운) */
 .portal-bloom {
   top: -90px;
   height: 180px;
 
   background: radial-gradient(ellipse 55% 50% at 50% 50%,
-    rgba(255, 255, 255, 0.85) 0%,
-    rgba(246, 250, 255, 0.45) 40%,
-    rgba(246, 250, 255, 0) 75%);
+    rgba(240, 247, 255, 0.9) 0%,
+    rgba(205, 228, 255, 0.45) 40%,
+    rgba(205, 228, 255, 0) 75%);
   filter: blur(14px);
 
   opacity: calc(var(--glow) * 0.85);
@@ -679,9 +689,9 @@ body.is-falling .abyss {
 
   background: radial-gradient(ellipse 48% 50% at 50% 50%,
     #ffffff 0%,
-    rgba(255, 255, 255, 0.85) 30%,
-    rgba(238, 246, 255, 0.4) 62%,
-    rgba(238, 246, 255, 0) 100%);
+    rgba(228, 241, 255, 0.85) 30%,
+    rgba(190, 220, 255, 0.4) 62%,
+    rgba(190, 220, 255, 0) 100%);
   filter: blur(9px);
 
   opacity: var(--glow);
