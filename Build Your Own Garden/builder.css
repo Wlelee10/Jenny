@@ -798,11 +798,51 @@
 
 .library-title {
   margin: 0;
-  padding: 26px 20px 14px;
+  padding: 26px 20px 8px;
 
   font-size: 13px;
   letter-spacing: 0.02em;
   text-align: center;
+}
+
+/* 카테고리 필터: 작은 글자, 선택된 것만 진하게 + 밑줄 */
+.library-filter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 9px;
+  padding: 0 18px 12px;
+}
+
+.library-filter button {
+  padding: 2px 0;
+
+  border: 0;
+  background: none;
+  color: #8c8c8c;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  cursor: pointer;
+
+  transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+
+.library-filter button:hover {
+  color: var(--ink, #111111);
+}
+
+.library-filter button.is-active {
+  color: var(--ink, #111111);
+  text-decoration-color: currentColor;
+}
+
+/* 필터에 맞지 않는 칸 (번호와 자리는 그대로, 보이지만 않음) */
+.library-cell.is-filtered {
+  display: none;
 }
 
 .library-scroll {

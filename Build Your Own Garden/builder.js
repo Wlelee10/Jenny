@@ -16,6 +16,7 @@
   const library = $("#library");
   const libraryScroll = $("#libraryScroll");
   const libraryGrid = $("#libraryGrid");
+  const libraryFilter = $("#libraryFilter");
   const workPanel = $("#workPanel");
   const toolbar = $("#toolbar");
   const layersPanel = $("#layers");
@@ -55,6 +56,33 @@
   ========================================= */
 
   const FRAGMENT_COUNT = 200;
+
+  // 라이브러리 카테고리 (번호는 그대로, 에셋마다 가장 자연스러운 한 곳에만)
+  const CATEGORIES = {
+    plants: [
+      4, 8, 11, 14, 17, 19, 22, 24, 26, 27, 32, 35, 37, 40, 44, 47, 48, 54, 58, 63, 79, 81, 83,
+      93, 95, 96, 101, 104, 106, 108, 109, 118, 119, 121, 125, 126, 129, 132, 133, 134, 135,
+      139, 140, 142, 143, 148, 151, 155, 156, 159, 160, 163, 168, 173, 174
+    ],
+    landscape: [
+      2, 25, 29, 31, 33, 34, 39, 42, 43, 51, 52, 57, 59, 62, 65, 71, 72, 77, 78, 86, 89, 90,
+      99, 100, 107, 110, 116, 117, 120, 124, 141, 145, 150, 162, 165, 166, 172
+    ],
+    objects: [
+      6, 9, 10, 12, 13, 18, 21, 23, 28, 30, 36, 38, 53, 60, 61, 64, 69, 70, 73, 74, 75, 76, 80,
+      82, 84, 85, 87, 88, 92, 97, 98, 102, 113, 114, 115, 122, 123, 128, 130, 144, 146, 147,
+      149, 153, 154, 157, 158, 167, 169, 171, 175
+    ],
+    characters: [
+      3, 5, 7, 20, 41, 45, 46, 49, 55, 56, 66, 67, 68, 91, 103, 105, 111, 112, 131, 136, 138,
+      152, 161
+    ],
+    sky: [
+      1, 15, 16, 50, 94, 127, 137, 164, 170, 176, 177, 178, 179, 180
+    ],
+    backgrounds: Array.from({ length: 20 }, (_, i) => 181 + i)
+  };
+
   const UNITS = 1000;            // 캔버스 내부 좌표 (화면 크기가 바뀌어도 그대로)
   const TOOL_COUNT = 6;          // 툴바 버튼 수
   const GAP = 16;                // 캔버스와 양옆 칸 사이
@@ -320,8 +348,15 @@
   }
 
   // 칸의 그림 영역 안에 비율을 유지하며 들어가는 크기와 위치
+  // (필터로 숨겨진 칸이면 라이브러리 위쪽 가운데로)
   function cellBox(id) {
-    const rect = cells[id - 1].firstChild.getBoundingClientRect();
+    let rect = cells[id - 1].firstChild.getBoundingClientRect();
+    if (!rect.width) {
+      const area = libraryScroll.getBoundingClientRect();
+      const size = 40;
+      const x = area.left + area.width / 2 - size / 2;
+      rect = { left: x, top: area.top, right: x + size, bottom: area.top + size, width: size, height: size };
+    }
     const { w, h } = fit(aspectOf(id), rect.width);
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, w, h, rect };
   }
@@ -331,6 +366,31 @@
     cells.forEach((cell) => cell.classList.toggle("is-previewed", Number(cell.dataset.id) === id));
   }
 
+
+  /* =========================================
+     CATEGORY FILTER: 고른 카테고리의 칸만 보임 (번호·순서는 그대로)
+  ========================================= */
+
+  const categoryOf = new Map();
+  Object.entries(CATEGORIES).forEach(([category, ids]) => ids.forEach((id) => categoryOf.set(id, category)));
+
+  function filterLibrary(category) {
+    libraryFilter.querySelectorAll("button").forEach((button) => {
+      const on = button.dataset.category === category;
+      button.classList.toggle("is-active", on);
+      button.setAttribute("aria-pressed", String(on));
+    });
+    cells.forEach((cell) => {
+      const id = Number(cell.dataset.id);
+      cell.classList.toggle("is-filtered", category !== "all" && categoryOf.get(id) !== category);
+    });
+    libraryScroll.scrollTop = 0;
+  }
+
+  libraryFilter.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-category]");
+    if (button) filterLibrary(button.dataset.category);
+  });
 
   /* =========================================
      ENTRY: 떨어진 조각이 라이브러리 칸으로 날아감
