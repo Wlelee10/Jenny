@@ -376,6 +376,10 @@
         );
         piece.element.style.opacity = visible ? "" : String(1 - e);
 
+        // 라이브러리에 정리되면서 둥근 모서리가 다시 사각형으로
+        const image = piece.element.querySelector("img");
+        if (image) window.gardenRoundImage?.(image, lerp(from.w, target.w, e), lerp(from.h, target.h, e), 1 - e);
+
         if (t >= 1) {
           piece.flying = false;
           piece.element.style.display = "none";
@@ -2922,6 +2926,7 @@
 
       pieces.push(piece);
       drawBox(element, piece.x, piece.y, w, h, piece.rotation);
+      window.gardenRoundImage?.(image, w, h);
     });
 
     computeLayout();

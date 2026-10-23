@@ -458,11 +458,19 @@ body.is-falling .glass {
   background: #ffffff;
 }
 
-.opening-sound {
+/* 오른쪽 아래: [ SOUND ON ] [ SKIP ] */
+.opening-controls {
   position: absolute;
   right: 34px;
   bottom: 28px;
+  z-index: 1;
 
+  display: flex;
+  gap: 8px;
+}
+
+.opening-sound,
+.opening-skip {
   padding: 7px 11px;
   border: 0;
   border-radius: 999px;
@@ -474,6 +482,11 @@ body.is-falling .glass {
   font-family: inherit;
   font-size: 11px;
   cursor: pointer;
+}
+
+.opening-skip:hover,
+.opening-sound:hover {
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .opening-sound[hidden] {

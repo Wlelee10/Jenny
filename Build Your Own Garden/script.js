@@ -25,6 +25,7 @@ const opening = document.querySelector("#opening");
 const openingVideo = document.querySelector("#openingVideo");
 const openingSound = document.querySelector("#openingSound");
 const openingPlay = document.querySelector("#openingPlay");
+const openingSkip = document.querySelector("#openingSkip");
 
 function endOpening() {
   if (!document.body.classList.contains("is-opening")) return;
@@ -81,6 +82,12 @@ async function playOpening() {
   openingVideo.addEventListener("error", endOpening);
   opening.addEventListener("click", unmuteOpening);
 
+  // [ SKIP ] → 영상을 건너뛰고 바로 첫 타이틀 페이지로
+  openingSkip?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    endOpening();
+  });
+
   // 실제로 재생되기 시작하면: PLAY는 숨기고, 소리가 꺼져 있으면 SOUND ON
   openingVideo.addEventListener("playing", () => {
     openingPlay.hidden = true;
@@ -114,6 +121,57 @@ async function playOpening() {
 }
 
 playOpening();
+
+/* =========================================
+   SQUIRCLE (애플 앱 아이콘 모양: 연속 곡률 모서리)
+   반지름은 짧은 변의 22.37%, 스무딩 60% (Figma의 iOS 아이콘 값)
+   이미지 크기가 제각각이라 px 단위 clip-path로 그때그때 만듦
+========================================= */
+
+function squirclePath(x, y, w, h, r) {
+  const s = 0.6;
+  const p = Math.min((1 + s) * r, w / 2, h / 2);
+  const alpha = (45 * s * Math.PI) / 180;
+  const beta = (90 * (1 - s) * Math.PI) / 180;
+  const arc = Math.sin(beta / 2) * r * Math.SQRT2;
+  const c = r * Math.tan((Math.PI / 2 - beta) / 4) * Math.cos(alpha);
+  const d = c * Math.tan(alpha);
+  const b = Math.max(0, (p - arc - c - d) / 3);
+  const a = 2 * b;
+  const n = (v) => v.toFixed(2);
+  const R = `a${n(r)} ${n(r)} 0 0 1`;
+
+  return (
+    `M${n(x + p)} ${n(y)}H${n(x + w - p)}` +
+    `c${n(a)} 0 ${n(a + b)} 0 ${n(a + b + c)} ${n(d)}${R} ${n(arc)} ${n(arc)}c${n(d)} ${n(c)} ${n(d)} ${n(b + c)} ${n(d)} ${n(a + b + c)}` +
+    `V${n(y + h - p)}` +
+    `c0 ${n(a)} 0 ${n(a + b)} ${n(-d)} ${n(a + b + c)}${R} ${n(-arc)} ${n(arc)}c${n(-c)} ${n(d)} ${n(-(b + c))} ${n(d)} ${n(-(a + b + c))} ${n(d)}` +
+    `H${n(x + p)}` +
+    `c${n(-a)} 0 ${n(-(a + b))} 0 ${n(-(a + b + c))} ${n(-d)}${R} ${n(-arc)} ${n(-arc)}c${n(-d)} ${n(-c)} ${n(-d)} ${n(-(b + c))} ${n(-d)} ${n(-(a + b + c))}` +
+    `V${n(y + p)}` +
+    `c0 ${n(-a)} 0 ${n(-(a + b))} ${n(d)} ${n(-(a + b + c))}${R} ${n(arc)} ${n(-arc)}c${n(c)} ${n(-d)} ${n(b + c)} ${n(-d)} ${n(a + b + c)} ${n(-d)}Z`
+  );
+}
+
+// 상자(boxW × boxH) 안에 contain으로 그려진 이미지의 실제 모양대로 둥글게 자름
+// amount: 1 = 완전히 둥글게, 0 = 사각형
+function roundImage(image, boxW, boxH, amount = 1) {
+  if (amount <= 0.001) {
+    image.style.clipPath = "";
+    return;
+  }
+  const aspect = image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 1;
+  let w = boxW;
+  let h = boxW / aspect;
+  if (h > boxH) {
+    h = boxH;
+    w = boxH * aspect;
+  }
+  const r = Math.min(w, h) * 0.2237 * amount;
+  image.style.clipPath = `path("${squirclePath((boxW - w) / 2, (boxH - h) / 2, w, h, r)}")`;
+}
+
+window.gardenRoundImage = roundImage;
 
 /* =========================================
    PIXEL LETTERS
@@ -842,6 +900,7 @@ function startCollapse() {
       // 선에 닿는 순간: 선이 밝아짐 + fragment 등장
       if (body.state === "falling" && centerY + hh >= lineY) {
         body.state = "transit";
+        roundImage(body.piece.querySelector("img"), body.w, body.h);
         body.piece.classList.add("is-visible");
         flashAt();
       }
