@@ -41,6 +41,7 @@
   let savedBlob = null;
   let pollTimer = null;
   let hideBuilderTimer = null;
+  let titleFocusTimer;
   let arriveTimer = null;
 
   const pad2 = (n) => String(n).padStart(2, "0");
@@ -249,6 +250,13 @@
 
     clearTimeout(arriveTimer);
     arriveTimer = setTimeout(() => result.classList.remove("is-arriving"), quick ? 0 : 1300);
+
+    // 화면이 다 나타나면 이름 칸에 바로 커서가 깜빡이며 입력 대기
+    clearTimeout(titleFocusTimer);
+    titleFocusTimer = setTimeout(() => {
+      if (savedEntry || result.hidden || activeTab !== "build") return;
+      titleInput.focus({ preventScroll: true });
+    }, quick ? 0 : 1100);
 
     // 캔버스: 빌더 자리 → 폴더 속 자리 (FLIP)
     flyCanvas(sourceRect, targetRect, false);
