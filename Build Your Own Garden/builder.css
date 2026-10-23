@@ -805,16 +805,87 @@
   text-align: center;
 }
 
-/* 카테고리 필터: 작은 글자, 선택된 것만 진하게 + 밑줄 */
+/* 카테고리 필터: 한 줄로 가로 스크롤, 양끝 < > 로 이동
+   선택된 것만 진하게 + 밑줄 */
 .library-filter {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 2px 9px;
-  padding: 0 18px 12px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px 12px;
 }
 
-.library-filter button {
+.filter-track {
+  --fade-l: 0px;
+  --fade-r: 0px;
+
+  position: relative;
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  gap: 11px;
+
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+}
+
+.filter-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* 넘친 쪽만 아주 약하게 흐려짐 */
+.filter-track.has-left {
+  --fade-l: 16px;
+}
+
+.filter-track.has-right {
+  --fade-r: 16px;
+}
+
+.filter-arrow {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 16px;
+  padding: 0;
+
+  border: 0;
+  background: none;
+  color: var(--ink, #111111);
+  opacity: 0.4;
+  cursor: pointer;
+
+  transition: opacity 160ms ease;
+}
+
+.filter-arrow svg {
+  width: 5px;
+  height: 8px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.filter-arrow:hover {
+  opacity: 0.85;
+}
+
+/* 더 갈 곳이 없는 쪽 */
+.filter-arrow:disabled {
+  opacity: 0.12;
+  cursor: default;
+}
+
+.filter-track button {
+  flex: none;
   padding: 2px 0;
 
   border: 0;
@@ -823,6 +894,7 @@
   font: inherit;
   font-size: 9px;
   letter-spacing: 0.06em;
+  white-space: nowrap;
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
@@ -831,11 +903,11 @@
   transition: color 160ms ease, text-decoration-color 160ms ease;
 }
 
-.library-filter button:hover {
+.filter-track button:hover {
   color: var(--ink, #111111);
 }
 
-.library-filter button.is-active {
+.filter-track button.is-active {
   color: var(--ink, #111111);
   text-decoration-color: currentColor;
 }

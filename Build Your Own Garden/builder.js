@@ -17,6 +17,8 @@
   const libraryScroll = $("#libraryScroll");
   const libraryGrid = $("#libraryGrid");
   const libraryFilter = $("#libraryFilter");
+  const filterTrack = $("#filterTrack");
+  const filterArrows = [...libraryFilter.querySelectorAll(".filter-arrow")];
   const workPanel = $("#workPanel");
   const toolbar = $("#toolbar");
   const layersPanel = $("#layers");
@@ -375,7 +377,7 @@
   Object.entries(CATEGORIES).forEach(([category, ids]) => ids.forEach((id) => categoryOf.set(id, category)));
 
   function filterLibrary(category) {
-    libraryFilter.querySelectorAll("button").forEach((button) => {
+    filterTrack.querySelectorAll("button[data-category]").forEach((button) => {
       const on = button.dataset.category === category;
       button.classList.toggle("is-active", on);
       button.setAttribute("aria-pressed", String(on));
@@ -389,8 +391,66 @@
 
   libraryFilter.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-category]");
-    if (button) filterLibrary(button.dataset.category);
+    if (button) {
+      filterLibrary(button.dataset.category);
+      revealCategory(button);
+      return;
+    }
+    const arrow = event.target.closest(".filter-arrow");
+    if (arrow) stepCategories(Number(arrow.dataset.dir));
   });
+
+  // 한 줄 카테고리: 넘치는 쪽에 흐림 + 화살표 켜기/끄기
+  function updateFilterEdges() {
+    const max = filterTrack.scrollWidth - filterTrack.clientWidth;
+    const left = filterTrack.scrollLeft > 1;
+    const right = filterTrack.scrollLeft < max - 1;
+    filterTrack.classList.toggle("has-left", left);
+    filterTrack.classList.toggle("has-right", right);
+    filterArrows[0].disabled = !left;
+    filterArrows[1].disabled = !right;
+  }
+
+  // < > : 가려진 다음(이전) 카테고리 하나가 다 보일 만큼 이동
+  function stepCategories(dir) {
+    const buttons = [...filterTrack.querySelectorAll("button[data-category]")];
+    const view = filterTrack.scrollLeft;
+    const width = filterTrack.clientWidth;
+    const fade = 16;
+    let target;
+    if (dir > 0) {
+      const next = buttons.find((b) => b.offsetLeft + b.offsetWidth > view + width - fade + 1);
+      target = next ? next.offsetLeft + next.offsetWidth - width + fade : view + width;
+    } else {
+      const prev = buttons.reverse().find((b) => b.offsetLeft < view + fade - 1);
+      target = prev ? prev.offsetLeft - fade : 0;
+    }
+    filterTrack.scrollTo({ left: target });
+  }
+
+  // 고른 카테고리가 가장자리에 걸쳐 있으면 다 보이게
+  function revealCategory(button) {
+    const view = filterTrack.scrollLeft;
+    const width = filterTrack.clientWidth;
+    const fade = 16;
+    if (button.offsetLeft < view + fade) {
+      filterTrack.scrollTo({ left: button.offsetLeft - fade });
+    } else if (button.offsetLeft + button.offsetWidth > view + width - fade) {
+      filterTrack.scrollTo({ left: button.offsetLeft + button.offsetWidth - width + fade });
+    }
+  }
+
+  // 마우스 휠(세로)로도 좌우 이동, 트랙패드 가로 스크롤은 그대로
+  filterTrack.addEventListener("wheel", (event) => {
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+    if (filterTrack.scrollWidth <= filterTrack.clientWidth) return;
+    event.preventDefault();
+    filterTrack.scrollBy({ left: event.deltaY });
+  }, { passive: false });
+
+  filterTrack.addEventListener("scroll", updateFilterEdges, { passive: true });
+  new ResizeObserver(updateFilterEdges).observe(filterTrack);
+  updateFilterEdges();
 
   /* =========================================
      ENTRY: 떨어진 조각이 라이브러리 칸으로 날아감
