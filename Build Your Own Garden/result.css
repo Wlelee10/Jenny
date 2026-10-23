@@ -363,6 +363,61 @@
   cursor: default;
 }
 
+/* 이름이 비어 있을 때: 빨간 글씨 + 점선 + 깜빡이는 커서로 눈에 띄게 */
+.title-field.is-empty {
+  color: var(--result-red);
+}
+
+.title-field.is-empty input {
+  border-bottom-color: var(--result-red);
+}
+
+.title-field.is-empty input::placeholder {
+  color: var(--result-red);
+}
+
+.title-field.is-empty input:focus::placeholder {
+  color: rgba(179, 20, 30, 0.35);
+}
+
+.title-caret {
+  display: none;
+  align-self: center;
+  width: 2px;
+  height: 0.95em;
+  margin-left: -1px;
+  background: var(--result-red);
+  animation: title-caret-blink 1s steps(1) infinite;
+}
+
+.title-field.is-empty:not(:focus-within) .title-caret {
+  display: block;
+}
+
+@keyframes title-caret-blink {
+  50% { opacity: 0; }
+}
+
+/* 이름 없이 SAVE 를 누르면 살짝 흔들림 */
+.title-field.is-nudged {
+  animation: title-nudge 420ms ease;
+}
+
+@keyframes title-nudge {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-caret,
+  .title-field.is-nudged {
+    animation: none;
+  }
+}
+
 .result-time {
   margin: 28px 0 0;
   font-variant-numeric: tabular-nums;

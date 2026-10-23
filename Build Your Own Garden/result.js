@@ -13,6 +13,7 @@
   const folders = [...result.querySelectorAll(".folder")];
   const resultCanvas = $("#resultCanvas");
   const titleInput = $("#gardenTitle");
+  const titleField = $("#titleField");
   const resultTime = $("#resultTime");
   const resultTotal = $("#resultTotal");
   const resultSelected = $("#resultSelected");
@@ -492,7 +493,16 @@
     titleInput.style.width = `${Math.ceil(width)}px`;
   }
 
-  titleInput.addEventListener("input", fitTitle);
+  function markTitle() {
+    titleField.classList.toggle("is-empty", !titleInput.value.trim());
+  }
+
+  titleInput.addEventListener("input", () => {
+    fitTitle();
+    markTitle();
+    if (titleInput.value.trim() && !savedEntry) saveNote.textContent = "";
+  });
+  titleField.addEventListener("animationend", () => titleField.classList.remove("is-nudged"));
   titleInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") titleInput.blur();
   });
@@ -517,6 +527,16 @@
   saveButton.addEventListener("click", async () => {
     if (!finished || savedEntry || saveButton.disabled) return;
 
+    // 이름이 없으면 저장하지 않고 이름 칸으로 안내
+    if (!titleInput.value.trim()) {
+      titleField.classList.remove("is-nudged");
+      void titleField.offsetWidth;
+      titleField.classList.add("is-nudged");
+      saveNote.textContent = "Name your garden before saving.";
+      titleInput.focus();
+      return;
+    }
+
     saveButton.disabled = true;
     backButton.disabled = true;
     saveButton.textContent = "SAVING…";
@@ -534,6 +554,7 @@
 
       titleInput.value = savedEntry.title;
       titleInput.readOnly = true;
+      markTitle();
       backButton.hidden = true;
       fitTitle();
       saveButton.textContent = "SAVED";
