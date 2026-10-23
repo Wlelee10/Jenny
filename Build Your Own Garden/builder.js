@@ -59,7 +59,7 @@
 
   const FRAGMENT_COUNT = 200;
 
-  // 라이브러리 카테고리 (번호는 그대로, 에셋마다 가장 자연스러운 한 곳에만)
+  // 라이브러리 카테고리 (번호는 그대로, 일부 배경은 SKY·LANDSCAPE에도 함께 들어감)
   const CATEGORIES = {
     plants: [
       4, 8, 11, 14, 17, 19, 22, 24, 26, 27, 32, 35, 37, 40, 44, 47, 48, 54, 58, 63, 79, 81, 83,
@@ -67,20 +67,22 @@
       139, 140, 142, 143, 148, 151, 155, 156, 159, 160, 163, 168, 173, 174
     ],
     landscape: [
-      2, 25, 29, 31, 33, 34, 39, 42, 43, 51, 52, 57, 59, 62, 65, 71, 72, 77, 78, 86, 89, 90,
-      99, 100, 107, 110, 116, 117, 120, 124, 141, 145, 150, 162, 165, 166, 172
+      2, 25, 29, 31, 33, 34, 39, 42, 43, 51, 52, 57, 59, 65, 71, 72, 77, 78, 86, 89, 90,
+      99, 100, 107, 110, 116, 117, 120, 124, 141, 145, 150, 162, 165, 166, 172,
+      184, 185, 190 // 잔디 배경: BG에도 있음
     ],
     objects: [
       6, 9, 10, 12, 13, 18, 21, 23, 28, 30, 36, 38, 53, 60, 61, 64, 69, 70, 73, 74, 75, 76, 80,
       82, 84, 85, 87, 88, 92, 97, 98, 102, 113, 114, 115, 122, 123, 128, 130, 144, 146, 147,
-      149, 153, 154, 157, 158, 167, 169, 171, 175
+      149, 153, 154, 157, 158, 164, 167, 169, 171, 175
     ],
     characters: [
       3, 5, 7, 20, 41, 45, 46, 49, 55, 56, 66, 67, 68, 91, 103, 105, 111, 112, 131, 136, 138,
       152, 161
     ],
     sky: [
-      1, 15, 16, 50, 94, 127, 137, 164, 170, 176, 177, 178, 179, 180
+      1, 15, 16, 50, 62, 94, 127, 137, 170, 176, 177, 178, 179, 180,
+      181, 183, 186, 192, 194 // 하늘 배경: BG에도 있음
     ],
     backgrounds: Array.from({ length: 20 }, (_, i) => 181 + i)
   };
@@ -373,8 +375,12 @@
      CATEGORY FILTER: 고른 카테고리의 칸만 보임 (번호·순서는 그대로)
   ========================================= */
 
-  const categoryOf = new Map();
-  Object.entries(CATEGORIES).forEach(([category, ids]) => ids.forEach((id) => categoryOf.set(id, category)));
+  // 번호 → 속한 카테고리들 (한 에셋이 여러 곳에 있을 수 있음)
+  const categoriesOf = new Map();
+  Object.entries(CATEGORIES).forEach(([category, ids]) => ids.forEach((id) => {
+    if (!categoriesOf.has(id)) categoriesOf.set(id, new Set());
+    categoriesOf.get(id).add(category);
+  }));
 
   function filterLibrary(category) {
     filterTrack.querySelectorAll("button[data-category]").forEach((button) => {
@@ -384,7 +390,7 @@
     });
     cells.forEach((cell) => {
       const id = Number(cell.dataset.id);
-      cell.classList.toggle("is-filtered", category !== "all" && categoryOf.get(id) !== category);
+      cell.classList.toggle("is-filtered", category !== "all" && !categoriesOf.get(id)?.has(category));
     });
     libraryScroll.scrollTop = 0;
   }
