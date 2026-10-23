@@ -9,7 +9,6 @@ const scene = document.querySelector("#mosaicScene");
 const world = document.querySelector("#world");
 const abyss = document.querySelector("#abyss");
 const portalLine = document.querySelector("#portalLine");
-const portalFlashes = document.querySelector("#portalFlashes");
 const fragmentLayer = document.querySelector("#fragmentLayer");
 const startButton = document.querySelector("#startButton");
 
@@ -627,20 +626,15 @@ function startCollapse() {
   const sceneTop = scene.getBoundingClientRect().top + scrollStart;
   const clipY = lineY - sceneTop;
   const maskImage =
-    `linear-gradient(to bottom, #000 calc(100vh + ${(clipY - 30).toFixed(1)}px), ` +
-    `rgba(0, 0, 0, 0.4) calc(100vh + ${(clipY - 10).toFixed(1)}px), ` +
+    `linear-gradient(to bottom, #000 calc(100vh + ${(clipY - 46).toFixed(1)}px), ` +
+    `rgba(0, 0, 0, 0.4) calc(100vh + ${(clipY - 16).toFixed(1)}px), ` +
     `transparent calc(100vh + ${clipY.toFixed(1)}px))`;
 
-  // 마스크를 창 밖까지 넓힐 수 없는 브라우저(사파리)는 선에서 곧게 자름
-  // (선 위의 안개 막이 경계를 가려 줌)
+  // 마스크를 창 밖까지 넓힐 수 없는 브라우저(사파리)는 자르지 않고,
+  // 이미지 하나하나가 띠 안에서 완전히 사라지도록 함 (아래 setHaze)
   // (사파리는 no-clip을 지원한다고 답하지만 실제로는 창 밖을 잘라 버림)
   const isSafari = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
   const softEdge = !isSafari && CSS.supports("mask-clip", "no-clip");
-  if (!softEdge) {
-    scene.style.clipPath =
-      `polygon(-100vw -100vh, calc(100% + 100vw) -100vh, ` +
-      `calc(100% + 100vw) ${clipY.toFixed(1)}px, -100vw ${clipY.toFixed(1)}px)`;
-  }
 
   // 떨어지며 창 밖으로 벗어나는 타일도 보이도록 마스크를 넉넉하게
   if (softEdge) Object.assign(scene.style, {
@@ -730,10 +724,23 @@ function startCollapse() {
   }
 
   let energy = 0;
+  let nearby = 0; // 이번 프레임에 띠 가까이 있는 이미지 수
 
-  // 이미지가 지나갈 때마다 선 전체가 더 밝게 빛남 (따로 빛 조각은 만들지 않음)
+  // 이미지가 띠 안을 지날 때 아주 살짝 더 밝아짐
   function flashAt() {
-    energy = Math.min(energy + 0.3, 1.4);
+    energy = Math.min(energy + 0.08, 1);
+  }
+
+  // 띠에 가까워질수록 이미지가 옅어지고 흐려짐 → fragment는 흐리게 나타났다가 선명해짐
+  const APPROACH = 90; // 선 위 이 거리부터 반응
+  const EMERGE = 60;   // 선 아래 이 거리에서 완전히 선명
+
+  function setHaze(element, amount, fadeTo) {
+    const key = Math.round(amount * 20);
+    if (element._haze === key) return;
+    element._haze = key;
+    element.style.opacity = key ? String(1 - (1 - fadeTo) * amount) : "";
+    element.style.filter = key ? `blur(${(amount * 2.2).toFixed(2)}px)` : "";
   }
 
   /* ---------- 4. 바닥에 닿았을 때 ---------- */
@@ -897,6 +904,21 @@ function startCollapse() {
       const centerY = body.baseY + body.y;
       const { hh } = halfExtents(body);
 
+      if (body.state === "falling" || body.state === "transit") {
+        const gap = lineY - (centerY + hh);
+        if (gap < APPROACH) nearby++;
+        if (softEdge) {
+          setHaze(body.tile.firstChild, clamp(1 - gap / APPROACH, 0, 1), 0.6);
+        } else {
+          // 가운데가 변환 높이에 닿을 때 완전히 사라짐
+          setHaze(body.tile.firstChild, clamp(1 - (lineY - centerY) / (APPROACH + hh), 0, 1), 0);
+        }
+      }
+      if (body.state === "transit" || body.state === "fragment") {
+        const depth = centerY - lineY;
+        setHaze(body.piece.firstChild, clamp(1 - depth / EMERGE, 0, 1), 0.7);
+      }
+
       // 선에 닿는 순간: 선이 밝아짐 + fragment 등장
       if (body.state === "falling" && centerY + hh >= lineY) {
         body.state = "transit";
@@ -920,7 +942,10 @@ function startCollapse() {
       }
     });
 
-    energy *= Math.pow(0.03, dt);
+    // 가까이 온 이미지가 많을수록 띠가 아주 조금 밝아짐
+    const target = Math.min(nearby / 14, 1) * 0.8;
+    energy += (Math.max(target, energy * Math.pow(0.2, dt)) - energy) * Math.min(1, dt * 4);
+    nearby = 0;
     return active;
   }
 
@@ -931,9 +956,7 @@ function startCollapse() {
     const cameraY = scrollStart + (cameraEnd - scrollStart) * easeInOutCubic(progress);
     world.style.transform = `translate3d(0, ${(scrollStart - cameraY).toFixed(1)}px, 0)`;
 
-    // 선 전체가 은은하게 반짝이도록 밝을 때 살짝 일렁임
-    const shimmer = energy > 0.05 ? (Math.random() - 0.5) * 0.12 * Math.min(energy, 1) : 0;
-    portalLine.style.setProperty("--energy", Math.max(0, energy + shimmer).toFixed(3));
+    portalLine.style.setProperty("--energy", Math.max(0, energy).toFixed(3));
 
     bodies.forEach((body) => {
       const transform =

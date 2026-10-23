@@ -598,13 +598,15 @@ body.is-falling .abyss {
 
 
 /* =========================================
-   PORTAL LINE
-   빛나는 하늘색 선 하나 — 이미지는 선 위에서 스며들고, 선 아래에서 fragment로 번져 나옴
+   TRANSITION ZONE
+   선 대신, 위아래 경계 없이 번지는 아주 옅은 안개 띠 (높이 약 120px)
+   AI 이미지가 이 안을 지나며 흐려지고 → fragment로 바뀌어 다시 선명해짐
+   변환이 일어나는 높이(--line-top)는 그대로
 ========================================= */
 
 .portal-line {
   --energy: 0;
-  --sides: linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%);
+  --zone: 120px;
 
   position: absolute;
   left: 0;
@@ -618,76 +620,40 @@ body.is-falling .abyss {
 
 .portal-line > * {
   position: absolute;
-  left: 3%;
-  right: 3%;
+  left: 0;
+  right: 0;
+  top: calc(var(--zone) / -2);
+  height: var(--zone);
 }
 
-/* 빛나는 하늘색 선: 가는 하얀 심이 가운데서 가장 밝고 양끝으로 사라짐 */
-.portal-edge {
-  top: -0.75px;
-  height: 1.5px;
-  border-radius: 2px;
+/* 흰 안개: 평소엔 거의 보이지 않고, 이미지가 가까워지면 아주 살짝 밝아짐 */
+.portal-haze {
+  background: radial-gradient(ellipse 50% 50% at 50% 50%,
+    rgba(250, 252, 255, 0.9) 0%,
+    rgba(244, 248, 255, 0.55) 45%,
+    rgba(244, 248, 255, 0) 100%);
 
-  background: linear-gradient(to right,
-    rgba(90, 170, 255, 0) 0%,
-    rgba(90, 170, 255, 0.7) 14%,
-    #bfe2ff 36%,
-    #ffffff 50%,
-    #bfe2ff 64%,
-    rgba(90, 170, 255, 0.7) 86%,
-    rgba(90, 170, 255, 0) 100%);
-  box-shadow:
-    0 0 3px rgba(120, 190, 255, 0.95),
-    0 0 10px rgba(60, 145, 255, calc(0.35 + var(--energy) * 0.4));
-
-  transition: box-shadow 260ms ease-out;
-
-  -webkit-mask-image: var(--sides);
-  mask-image: var(--sides);
+  opacity: calc(0.25 + var(--energy) * 0.55);
+  transition: opacity 600ms ease-out;
 }
 
-/* 선 전체에서 위아래로 넓게 퍼지는 빛 — 이미지가 지나갈수록 밝아짐 */
-.portal-glow {
-  top: calc(var(--halo, 150px) / -2);
-  height: var(--halo, 150px);
-
-  background:
-    radial-gradient(ellipse 50% 50% at 50% 50%,
-      rgba(70, 150, 255, 0.42) 0%,
-      rgba(50, 130, 255, 0.2) 38%,
-      rgba(40, 120, 255, 0.06) 70%,
-      rgba(40, 120, 255, 0) 100%);
-
-  opacity: calc(0.3 + var(--energy) * 0.7);
-  filter: blur(8px);
-  transition: opacity 260ms ease-out;
-}
-
-/* 가운데의 밝은 빛 덩어리 */
-.portal-flashes {
+/* 가운데의 아주 약한 빛 띠 (선이 아니라 넓게 번진 밝음) */
+.portal-band {
   top: -14px;
-  left: 30%;
-  right: 30%;
   height: 28px;
 
-  background: radial-gradient(ellipse 50% 50% at 50% 50%,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(180, 220, 255, 0.7) 25%,
-    rgba(90, 165, 255, 0.25) 55%,
-    rgba(90, 165, 255, 0) 100%);
+  background: radial-gradient(ellipse 45% 50% at 50% 50%,
+    rgba(255, 255, 255, 0.7) 0%,
+    rgba(236, 244, 255, 0.35) 50%,
+    rgba(236, 244, 255, 0) 100%);
+  filter: blur(6px);
 
-  opacity: calc(0.45 + var(--energy) * 0.55);
-  transform: scaleX(calc(0.85 + var(--energy) * 0.25));
-  filter: blur(3px);
-  transition: opacity 260ms ease-out, transform 260ms ease-out;
+  opacity: calc(0.2 + var(--energy) * 0.45);
+  transition: opacity 600ms ease-out;
 }
 
-
-
-/* 다 떨어진 뒤: 빛이 천천히 잦아들어 은은한 선만 남음 */
-.portal-line.is-resting > .portal-edge,
-.portal-line.is-resting > .portal-glow,
-.portal-line.is-resting > .portal-flashes {
+/* 다 떨어진 뒤: 천천히 원래의 거의 안 보이는 상태로 */
+.portal-line.is-resting > * {
   transition-duration: 1600ms;
   transition-timing-function: cubic-bezier(0.33, 0, 0.2, 1);
 }
@@ -710,8 +676,8 @@ body.is-falling .abyss {
   overflow: hidden;
   pointer-events: none;
 
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.35) 10px, #000 34px);
-  mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.35) 10px, #000 34px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.3) 16px, #000 52px);
+  mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.3) 16px, #000 52px);
 }
 
 .fragment {
