@@ -3,6 +3,9 @@
 ========================================= */
 
 :root {
+  /* 애플 앱 아이콘 모양 (연속 곡률 모서리: 반지름 22.37%, 스무딩 60%) */
+  --squircle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M50 0H64.208c12.528 0 18.793 0 23.578 2.438a22.37 22.37 0 0 1 9.776 9.776c2.438 4.785 2.438 11.049 2.438 23.578V64.208c0 12.528 0 18.793 -2.438 23.578a22.37 22.37 0 0 1 -9.776 9.776c-4.785 2.438 -11.049 2.438 -23.578 2.438H35.792c-12.528 0 -18.793 0 -23.578 -2.438a22.37 22.37 0 0 1 -9.776 -9.776c-2.438 -4.785 -2.438 -11.049 -2.438 -23.578V35.792c0 -12.528 0 -18.793 2.438 -23.578a22.37 22.37 0 0 1 9.776 -9.776c4.785 -2.438 11.049 -2.438 23.578 -2.438Z'/%3E%3C/svg%3E");
+
   --page-bg: #ffffff;
   --panel-bg: #f7f7f7;
   --ink: #111111;
@@ -166,30 +169,55 @@ body {
   height: calc(var(--cell) * 0.92);
 }
 
+/* 이미지 한 장: 애플 앱 아이콘 모양으로 둥글게 (--squircle) */
 .tile-image {
   position: absolute;
   inset: 0;
 
   overflow: hidden;
-  border-radius: 1px;
   background: #d8d8d8;
+
+  -webkit-mask: var(--squircle) center / 100% 100% no-repeat;
+  mask: var(--squircle) center / 100% 100% no-repeat;
 }
 
 /* 커서 아래의 이미지: 살짝 커짐 (떠나면 천천히 돌아옴) */
 .garden-tile .tile-image {
   transform: scale(1);
-  transition:
-    transform 520ms var(--ease-out),
-    box-shadow 520ms var(--ease-out);
+  transition: transform 520ms var(--ease-out);
 }
 
 .garden-tile.is-active {
   z-index: 5;
 }
 
+/* 그림자: 이미지와 같은 둥근 모양을 흐리게 깔아 둠 */
+.garden-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.3);
+  -webkit-mask: var(--squircle) center / 100% 100% no-repeat;
+  mask: var(--squircle) center / 100% 100% no-repeat;
+  filter: blur(7px);
+  opacity: 0;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 520ms var(--ease-out),
+    transform 520ms var(--ease-out);
+
+  pointer-events: none;
+}
+
+.garden-tile.is-active::before {
+  opacity: 1;
+  transform: translateY(6px) scale(1.45);
+  transition-duration: 300ms;
+}
+
 .garden-tile.is-active .tile-image {
   transform: scale(1.6);
-  box-shadow: 0 8px 18px -6px rgba(0, 0, 0, 0.28);
   transition-duration: 300ms;
 }
 
