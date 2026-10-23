@@ -652,6 +652,41 @@ body.is-falling .abyss {
   transition: opacity 600ms ease-out;
 }
 
+/* 이미션: 이미지가 처음 들어가는 순간 환하게 한 번 밝아지고,
+   이미지들이 다 지나가는 동안 서서히 원래대로 (JS가 --glow를 매 프레임 정함) */
+.portal-line {
+  --glow: 0;
+}
+
+/* 넓게 퍼지는 흰 빛 */
+.portal-bloom {
+  top: -90px;
+  height: 180px;
+
+  background: radial-gradient(ellipse 55% 50% at 50% 50%,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(246, 250, 255, 0.45) 40%,
+    rgba(246, 250, 255, 0) 75%);
+  filter: blur(14px);
+
+  opacity: calc(var(--glow) * 0.85);
+}
+
+/* 가운데의 밝은 빛 띠 (선이 아니라 두껍게 번진 빛) */
+.portal-emission {
+  top: -30px;
+  height: 60px;
+
+  background: radial-gradient(ellipse 48% 50% at 50% 50%,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0.85) 30%,
+    rgba(238, 246, 255, 0.4) 62%,
+    rgba(238, 246, 255, 0) 100%);
+  filter: blur(9px);
+
+  opacity: var(--glow);
+}
+
 /* 다 떨어진 뒤: 천천히 원래의 거의 안 보이는 상태로 */
 .portal-line.is-resting > * {
   transition-duration: 1600ms;

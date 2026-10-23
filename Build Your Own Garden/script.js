@@ -725,10 +725,13 @@ function startCollapse() {
 
   let energy = 0;
   let nearby = 0; // 이번 프레임에 띠 가까이 있는 이미지 수
+  let glow = 0;   // 이미션 밝기
+  let glowPeak = false; // 첫 이미지가 들어가는 순간의 번쩍임
 
   // 이미지가 띠 안을 지날 때 아주 살짝 더 밝아짐
   function flashAt() {
     energy = Math.min(energy + 0.08, 1);
+    if (!glowPeak) glowPeak = "rising";
   }
 
   // 띠에 가까워질수록 이미지가 옅어지고 흐려짐 → fragment는 흐리게 나타났다가 선명해짐
@@ -945,6 +948,15 @@ function startCollapse() {
     // 가까이 온 이미지가 많을수록 띠가 아주 조금 밝아짐
     const target = Math.min(nearby / 14, 1) * 0.8;
     energy += (Math.max(target, energy * Math.pow(0.2, dt)) - energy) * Math.min(1, dt * 4);
+
+    // 이미션: 첫 이미지가 들어가면 빠르게 최고 밝기로 → 이후 지나가는 양만큼만 남기며 천천히 잦아듦
+    if (glowPeak === "rising") {
+      glow += (1 - glow) * Math.min(1, dt * 14);
+      if (glow > 0.97) glowPeak = "done";
+    } else if (glowPeak === "done") {
+      const rest = Math.min(nearby / 14, 1) * 0.45;
+      glow += (rest - glow) * Math.min(1, dt * (rest < glow ? 0.9 : 3));
+    }
     nearby = 0;
     return active;
   }
@@ -957,6 +969,7 @@ function startCollapse() {
     world.style.transform = `translate3d(0, ${(scrollStart - cameraY).toFixed(1)}px, 0)`;
 
     portalLine.style.setProperty("--energy", Math.max(0, energy).toFixed(3));
+    portalLine.style.setProperty("--glow", Math.max(0, glow).toFixed(3));
 
     bodies.forEach((body) => {
       const transform =
@@ -984,6 +997,7 @@ function startCollapse() {
     // 애니메이션이 멈춰도 빛이 그 밝기로 굳지 않게: 천천히 잦아들도록 넘김
     portalLine.classList.add("is-resting");
     portalLine.style.setProperty("--energy", "0");
+    portalLine.style.setProperty("--glow", "0");
 
     // 다음 단계(builder.js)가 쌓인 조각을 그대로 이어받을 수 있도록 알림
     document.dispatchEvent(new CustomEvent("garden:landed", {
