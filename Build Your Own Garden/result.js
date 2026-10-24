@@ -430,6 +430,7 @@
         const name = `${type}_garden`;
         fragment.appendChild(makeCard({
           src: `images-medium/${encodeURIComponent(`#${label} ${name}.jpg`)}`,
+          full: `images-large/${encodeURIComponent(`#${label} ${name}.jpg`)}`, // 원본 해상도 (확대 보기)
           alt: `${name.replaceAll("_", " ")} ${label}`,
           lines: [`#${label}`, name]
         }));
@@ -440,11 +441,11 @@
     aiLibraryGrid.appendChild(fragment);
   }
 
-  function makeCard({ src, alt, lines, id, lazy = true }) {
+  function makeCard({ src, full, alt, lines, id, lazy = true }) {
     const card = document.createElement("figure");
     card.className = "card";
     if (id) card.dataset.id = id;
-    card.viewer = { src, alt, lines }; // 확대 보기에서 씀
+    card.viewer = { src, full, alt, lines }; // 확대 보기에서 씀
 
     const frame = document.createElement("div");
     frame.className = "card-image";
@@ -616,9 +617,20 @@
   const viewerCards = () => (viewerGrid ? [...viewerGrid.querySelectorAll(".card")] : []);
 
   function fillViewer(card) {
-    const { src, alt, lines } = card.viewer;
+    const { src, full, alt, lines } = card.viewer;
     viewerImage.src = src;
     viewerImage.alt = alt;
+
+    // 원본 해상도가 있으면: 받아지는 대로 같은 자리에 바꿔 끼움
+    if (full) {
+      const sharp = new Image();
+      sharp.decoding = "async";
+      sharp.onload = () => {
+        if (viewerImage.dataset.want === full) viewerImage.src = full;
+      };
+      sharp.src = full;
+    }
+    viewerImage.dataset.want = full ?? "";
     viewerCaption.replaceChildren(...lines.map((line) => {
       const row = document.createElement("span");
       row.textContent = line;
