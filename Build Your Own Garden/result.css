@@ -338,7 +338,6 @@
   color: var(--ink);
   font: inherit;
   letter-spacing: inherit;
-  text-transform: uppercase;
   outline: none;
 
   transition: border-color 160ms ease;

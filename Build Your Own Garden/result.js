@@ -773,7 +773,7 @@
   function fitTitle() {
     const style = getComputedStyle(titleInput);
     measure.font = `${style.fontSize} ${style.fontFamily}`;
-    const text = (titleInput.value || titleInput.placeholder).toUpperCase();
+    const text = titleInput.value || titleInput.placeholder;
     const spacing = parseFloat(style.letterSpacing) || 0;
     const width = measure.measureText(text).width + spacing * text.length + 4;
     titleInput.style.width = `${Math.ceil(width)}px`;
@@ -798,7 +798,7 @@
      SAVE & SHARE
   ========================================= */
 
-  const gardenTitle = () => titleInput.value.trim().toUpperCase() || "UNTITLED GARDEN";
+  const gardenTitle = () => titleInput.value.trim() || "UNTITLED GARDEN"; // 대문자 · 소문자 그대로
 
   async function toBlob(board) {
     return new Promise((resolve, reject) => {

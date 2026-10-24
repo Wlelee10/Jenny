@@ -1926,12 +1926,13 @@
       return;
     }
 
-    // 잠금 / 보기 (그룹은 멤버 전체)
+    // 잠금 / 보기 (그룹은 멤버 전체, 여러 줄이 선택된 상태에서 선택된 줄을 누르면 선택된 것 전부)
     const toggle = event.target.closest(".layer-button");
     if (toggle) {
       event.preventDefault();
       const key = toggle.dataset.toggle;
-      const members = row.uids.map(itemByUid);
+      const inSelection = row.uids.every((uid) => selection.has(uid));
+      const members = (inSelection ? [...selection] : row.uids).map(itemByUid).filter(Boolean);
       const value = !members.every((item) => item[key]);
       members.forEach((item) => { item[key] = value; });
       if (value) exitModes();
@@ -1979,6 +1980,8 @@
       block,
       grip: block.indexOf(layerRows.indexOf(row)), // 끌고 있는 줄이 묶음에서 몇 번째인지
       startY: event.clientY,
+      lastY: event.clientY,
+      startScroll: layersList.scrollTop,
       rowHeight: rect.height,
       target: null,
       moved: false,
@@ -1994,12 +1997,15 @@
   });
 
   function moveLayerDrag(event) {
-    const dy = event.clientY - layerDrag.startY;
+    layerDrag.lastY = event.clientY;
+    // 목록이 스크롤되면(휠 · 가장자리 자동 스크롤) 그만큼 더해서, 묶음이 계속 손 아래에 있도록
+    const dy = event.clientY - layerDrag.startY + (layersList.scrollTop - layerDrag.startScroll);
     if (!layerDrag.moved && Math.abs(dy) < 4) return;
 
     if (!layerDrag.moved) {
       layerDrag.moved = true;
       layersPanel.classList.add("is-reordering");
+      requestAnimationFrame(autoScrollLayers);
     }
 
     const { block, grip, rowHeight } = layerDrag;
@@ -2022,6 +2028,24 @@
       rest++;
       row.style.transform = final !== j ? `translateY(${(final - j) * rowHeight}px)` : "";
     });
+  }
+
+  // 끄는 중에 마우스 휠로 목록을 내려도 묶음이 따라감
+  layersList.addEventListener("scroll", () => {
+    if (layerDrag?.moved) moveLayerDrag({ clientY: layerDrag.lastY });
+  });
+
+  // 목록 위/아래 가장자리 가까이 끌고 가면 저절로 스크롤
+  function autoScrollLayers() {
+    if (!layerDrag?.moved) return;
+    const rect = layersList.getBoundingClientRect();
+    const edge = 32;
+    const y = layerDrag.lastY;
+    let speed = 0;
+    if (y < rect.top + edge) speed = -Math.min(1, (rect.top + edge - y) / edge) * 12;
+    else if (y > rect.bottom - edge) speed = Math.min(1, (y - (rect.bottom - edge)) / edge) * 12;
+    if (speed) layersList.scrollTop += speed; // → scroll 이벤트가 묶음 위치를 다시 계산
+    requestAnimationFrame(autoScrollLayers);
   }
 
   function endLayerDrag() {
@@ -2842,6 +2866,8 @@
     if (event.target.closest(".popover, .toolbar")) return;
     closePopovers();
     if (event.target.closest(".sel-frame, .library-cell, .info, .layers")) return;
+    // (잠금 · 보기 아이콘은 누르는 순간 새로 그려져 문서에서 빠지므로, 누른 경로로 확인)
+    if (event.composedPath().includes(layersPanel)) return;
     exitModes();
     setSelection([]);
   });
