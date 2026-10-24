@@ -729,12 +729,45 @@ function startCollapse() {
   let glow = 0;   // 이미션 밝기
   let glowPeak = false; // 첫 이미지가 들어가는 순간의 번쩍임
 
+  // 아직 움직이는 조각마다 "멈출 때까지 남은 시간"을 같은 물리로 미리 계산 → 가장 늦은 것
+  function timeToRest(body) {
+    if (body.state === "resting") return 0;
+    if (body.state === "rolling") return 0.05;
+
+    const tileHalf = halfExtents(body).hh;
+    const restHalf = (body.h * body.fragmentScale) / 2;
+    const floorY = lineY + layerHeight - surfaceUnder(body.baseX + body.x, restHalf) - restHalf;
+    let y = body.baseY + body.y;
+    let vy = body.vy;
+    let crossed = body.state === "fragment";
+    let t = body.state === "waiting" ? Math.max(0, body.delay - elapsed) : 0;
+    const step = 1 / 60;
+
+    for (let i = 0; i < 900 && y < floorY; i++) {
+      vy += (GRAVITY - AIR_DRAG * vy) * step;
+      y += vy * step;
+      if (!crossed && y - tileHalf >= lineY) {
+        vy *= MEMBRANE_DRAG;
+        crossed = true;
+      }
+      t += step;
+    }
+    return t + 0.05;
+  }
+
+  function timeToSettle() {
+    let remaining = 0;
+    for (const body of bodies) remaining = Math.max(remaining, timeToRest(body));
+    return remaining;
+  }
+
   // 이미지가 띠 안을 지날 때 아주 살짝 더 밝아짐
   function flashAt() {
     energy = Math.min(energy + 0.08, 1);
     if (!glowPeak) {
       glowPeak = "rising";
-      window.gardenSound?.fall(); // 첫 이미지가 통과하는 순간부터 떨어지는 소리
+      // 첫 이미지가 통과하는 순간부터 떨어지는 소리 — 마지막 조각이 자리 잡을 때 끝나도록 늘려서
+      window.gardenSound?.fall(timeToSettle());
     }
   }
 

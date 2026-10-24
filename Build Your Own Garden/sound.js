@@ -135,11 +135,40 @@
 
     start() {
       playFile("startClick");
+      // 사파리: 나중에(누른 순간이 아닐 때) 재생할 수 있도록 지금 한 번 깨워 둠
+      const audio = fallback.fragmentsFall;
+      if (audio) {
+        audio.muted = true;
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = false;
+        }).catch(() => { audio.muted = false; });
+      }
     },
 
-    // 첫 이미지가 transition zone을 통과해 fragment로 바뀌기 시작할 때 한 번
-    fall() {
-      playFile("fragmentsFall");
+    // 첫 이미지가 transition zone을 통과할 때 시작해서, seconds 뒤(조각이 다 쌓일 때) 끝나도록
+    // 음 높이는 그대로 두고 길이만 늘림
+    fall(seconds) {
+      const audio = fallback.fragmentsFall;
+      const duration = audio?.duration;
+      if (!audio || !Number.isFinite(duration) || !seconds) {
+        playFile("fragmentsFall");
+        return;
+      }
+      const rate = Math.min(1, Math.max(0.35, duration / seconds));
+      audio.preservesPitch = true;
+      audio.webkitPreservesPitch = true;
+      audio.defaultPlaybackRate = rate;
+      audio.playbackRate = rate;
+      audio.muted = false;
+      audio.volume = 1;
+      try {
+        audio.currentTime = 0;
+      } catch {
+        // 아직 준비 중이면 처음부터 재생됨
+      }
+      audio.play().catch(() => playFile("fragmentsFall"));
     },
 
     // fragment가 바닥에 닿는 작은 톡 (세게 떨어질수록 조금 더 또렷)
