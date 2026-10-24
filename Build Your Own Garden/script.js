@@ -732,7 +732,10 @@ function startCollapse() {
   // 이미지가 띠 안을 지날 때 아주 살짝 더 밝아짐
   function flashAt() {
     energy = Math.min(energy + 0.08, 1);
-    if (!glowPeak) glowPeak = "rising";
+    if (!glowPeak) {
+      glowPeak = "rising";
+      window.gardenSound?.fall(); // 첫 이미지가 통과하는 순간부터 떨어지는 소리
+    }
   }
 
   // 띠에 가까워질수록 이미지가 옅어지고 흐려짐 → fragment는 흐리게 나타났다가 선명해짐
@@ -1030,54 +1033,12 @@ function startCollapse() {
   let lastTime = performance.now();
   let settledAt = null;
 
-  /* ---------- 떨어지는 소리: 마지막 조각이 자리 잡는 순간에 소리가 끝나도록 ---------- */
-  // 아직 움직이는 조각마다 "멈출 때까지 남은 시간"을 같은 물리로 미리 계산 → 가장 늦은 것 기준
-  const SETTLE_TAIL = 0.05; // 바닥에 닿은 뒤 굴러 자리 잡는 시간
-  let fallSoundPlayed = false;
-
-  function timeToRest(body) {
-    if (body.state === "resting") return 0;
-    if (body.state === "rolling") return SETTLE_TAIL;
-
-    const tileHalf = halfExtents(body).hh;
-    const restHalf = (body.h * body.fragmentScale) / 2;
-    const floorY = lineY + layerHeight - surfaceUnder(body.baseX + body.x, restHalf) - restHalf;
-    let y = body.baseY + body.y;
-    let vy = body.vy;
-    let crossed = body.state === "fragment";
-    let t = body.state === "waiting" ? Math.max(0, body.delay - elapsed) : 0;
-    const step = 1 / 60;
-
-    for (let i = 0; i < 900 && y < floorY; i++) {
-      vy += (GRAVITY - AIR_DRAG * vy) * step;
-      y += vy * step;
-      if (!crossed && y - tileHalf >= lineY) {
-        vy *= MEMBRANE_DRAG;
-        crossed = true;
-      }
-      t += step;
-    }
-    return t + SETTLE_TAIL;
-  }
-
-  function cueFallSound() {
-    const sound = window.gardenSound;
-    if (fallSoundPlayed || !sound) return;
-    let remaining = 0;
-    for (const body of bodies) remaining = Math.max(remaining, timeToRest(body));
-    if (remaining <= sound.fallDuration()) {
-      fallSoundPlayed = true;
-      sound.fall();
-    }
-  }
-
   function frame(now) {
     const dt = Math.min((now - lastTime) / 1000, 1 / 30);
     lastTime = now;
 
     const active = simulate(dt);
     render();
-    cueFallSound();
 
     // 모두 자리 잡고 기울기 정리까지 끝나면 멈춤
     if (active === 0 && elapsed > CAMERA_DELAY + CAMERA_DURATION) {

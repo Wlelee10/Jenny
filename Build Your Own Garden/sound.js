@@ -137,14 +137,9 @@
       playFile("startClick");
     },
 
-    // 조각이 다 쌓이는 순간에 맞춰 끝나도록 script.js가 시작 시점을 정함
+    // 첫 이미지가 transition zone을 통과해 fragment로 바뀌기 시작할 때 한 번
     fall() {
       playFile("fragmentsFall");
-    },
-
-    fallDuration() {
-      const duration = buffers.fragmentsFall?.duration ?? fallback.fragmentsFall?.duration;
-      return Number.isFinite(duration) ? duration : 1.1;
     },
 
     // fragment가 바닥에 닿는 작은 톡 (세게 떨어질수록 조금 더 또렷)
