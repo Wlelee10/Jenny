@@ -2,7 +2,7 @@
    BUILD YOUR OWN GARDEN
    SOUND — 파일 없이 브라우저에서 바로 합성하는 작은 효과음
    hover(): 버튼에 마우스를 올릴 때 / start(): START를 누를 때 / land(): fragment가 바닥에 쌓일 때
-   START 버튼의 호버음 · 클릭음은 직접 만든 파일 (sounds/)
+   START 버튼의 호버음 · 클릭음, 조각이 떨어지는 소리는 직접 만든 파일 (sounds/)
    (브라우저 규칙상 화면을 한 번 누르거나 키를 누른 뒤부터 소리가 남)
 ========================================= */
 
@@ -14,7 +14,11 @@
   let lastLand = 0;
 
   // 파일 효과음: 미리 받아 두었다가 바로 재생
-  const FILES = { startHover: "sounds/start-hover.mp3", startClick: "sounds/start-click.mp3" };
+  const FILES = {
+    startHover: "sounds/start-hover.mp3",
+    startClick: "sounds/start-click.mp3",
+    fragmentsFall: "sounds/fragments-fall.mp3"
+  };
   const buffers = {};
   const fallback = {};
   Object.entries(FILES).forEach(([key, src]) => {
@@ -131,6 +135,11 @@
 
     start() {
       playFile("startClick");
+    },
+
+    // 첫 이미지가 transition zone을 통과해 fragment로 바뀌기 시작할 때 한 번
+    fall() {
+      playFile("fragmentsFall");
     },
 
     // fragment가 바닥에 닿는 작은 톡 (세게 떨어질수록 조금 더 또렷)

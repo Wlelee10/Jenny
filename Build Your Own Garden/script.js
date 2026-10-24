@@ -732,7 +732,10 @@ function startCollapse() {
   // 이미지가 띠 안을 지날 때 아주 살짝 더 밝아짐
   function flashAt() {
     energy = Math.min(energy + 0.08, 1);
-    if (!glowPeak) glowPeak = "rising";
+    if (!glowPeak) {
+      glowPeak = "rising";
+      window.gardenSound?.fall(); // 첫 이미지가 통과하는 순간부터 떨어지는 소리
+    }
   }
 
   // 띠에 가까워질수록 이미지가 옅어지고 흐려짐 → fragment는 흐리게 나타났다가 선명해짐
@@ -770,11 +773,6 @@ function startCollapse() {
 
     if (localY < restY || body.vy <= 0) return;
 
-    // 처음 바닥(또는 쌓인 더미)에 닿을 때 작은 톡
-    if (!body.landed) {
-      body.landed = true;
-      window.gardenSound?.land(body.vy);
-    }
 
     body.y = restY + lineY - body.baseY;
 
