@@ -1400,7 +1400,7 @@
      CUT (모양 자르기) — 펜 툴
      클릭: 꼭짓점 · 클릭한 채 끌기: 곡선 핸들
      첫 점을 다시 누르거나 Enter: 그 모양으로 자르기
-     Backspace: 마지막 점 지우기 / Esc: 취소
+     Backspace 또는 ⌘/Ctrl+Z: 방금 그린 점(획) 하나만 취소 · ⌘/Ctrl+⇧+Z: 다시 / Esc: 취소
      그리는 동안 안쪽은 원본 그대로, 바깥은 흐리게
   ========================================= */
 
@@ -1413,7 +1413,7 @@
 
     exitCrop();
     const item = targets[0];
-    cutting = { uid: item.uid, points: [], hover: null, closable: false, drawn: "" };
+    cutting = { uid: item.uid, points: [], undone: [], hover: null, closable: false, drawn: "" };
 
     // 네모 자르기처럼: 바깥으로 남을 부분을 흐리게 보여줄 복제본
     const ghost = document.createElement("div");
@@ -1464,6 +1464,7 @@
 
     const anchor = { x: point.x, y: point.y, hx: 0, hy: 0 };
     cutting.points.push(anchor);
+    cutting.undone = [];
     cutting.closable = false;
     builder.classList.remove("is-pen-closing");
     action = { type: "pen", anchor };
@@ -1945,37 +1946,38 @@
     const toggleKey = event.metaKey || event.ctrlKey;
     const rowSelected = row.uids.every((uid) => selection.has(uid));
 
-    // ⇧: 마지막으로 누른 줄부터 이 줄까지 전부
+    let narrowTo = false;
+
     if (event.shiftKey) {
+      // ⇧: 마지막으로 누른 줄부터 이 줄까지 전부
       const rows = layerRows;
       const from = Math.max(0, rows.findIndex((entry) => entry.key === layerAnchor));
       const to = rows.indexOf(row);
       const range = rows.slice(Math.min(from, to), Math.max(from, to) + 1).flatMap((entry) => entry.uids);
       setSelection(toggleKey ? [...selection, ...range] : range);
-      return;
-    }
-
-    layerAnchor = row.key;
-
-    // ⌘/Ctrl: 떨어진 줄도 하나씩 골라서 추가 / 빼기
-    if (toggleKey) {
+    } else if (toggleKey) {
+      // ⌘/Ctrl: 떨어진 줄도 하나씩 골라서 추가 / 빼기
+      layerAnchor = row.key;
       setSelection(rowSelected
         ? [...selection].filter((uid) => !row.uids.includes(uid))
         : [...selection, ...row.uids]);
-      return;
+    } else {
+      layerAnchor = row.key;
+      narrowTo = rowSelected && selection.size > row.uids.length;
+      if (!rowSelected) setSelection(row.uids);
     }
 
-    const narrowTo = rowSelected && selection.size > row.uids.length;
-    if (!rowSelected) setSelection(row.uids);
-
-    // 끌어서 순서 바꾸기 (펼친 그룹은 그 안의 줄까지 함께)
-    const index = layerRows.indexOf(row);
-    const size = row.kind === "group" && !row.group.collapsed ? row.uids.length + 1 : 1;
+    // 이 줄이 선택되어 있으면: 선택된 줄 전부를 한꺼번에 끌어서 순서 바꾸기
+    // (펼친 그룹은 그 안의 줄까지 함께, 떨어져 있던 줄들은 놓는 자리에 모임)
+    if (!row.uids.every((uid) => selection.has(uid))) return;
+    const block = layerRows
+      .map((entry, j) => (entry.uids.every((uid) => selection.has(uid)) ? j : -1))
+      .filter((j) => j >= 0);
     const rect = element.getBoundingClientRect();
     layerDrag = {
       row,
-      index,
-      size,
+      block,
+      grip: block.indexOf(layerRows.indexOf(row)), // 끌고 있는 줄이 묶음에서 몇 번째인지
       startY: event.clientY,
       rowHeight: rect.height,
       target: null,
@@ -2000,21 +2002,24 @@
       layersPanel.classList.add("is-reordering");
     }
 
-    const { index, size, rowHeight } = layerDrag;
+    const { block, grip, rowHeight } = layerDrag;
+    const size = block.length;
     const others = layerRows.length - size;
-    const target = clamp(Math.round(index + dy / rowHeight), 0, others);
+    const top = block[grip] + dy / rowHeight - grip; // 묶음 맨 위 줄이 갈 자리 (줄 단위)
+    const target = clamp(Math.round(top), 0, others);
     layerDrag.target = target;
 
-    // 끌고 있는 줄(들)은 손을 따라가고, 다른 줄들은 비켜 줌
+    // 끌고 있는 줄들은 한 묶음으로 모여 손을 따라가고, 다른 줄들은 비켜 줌
+    let rest = 0;
     [...layersList.children].forEach((row, j) => {
-      const inBlock = j >= index && j < index + size;
-      row.classList.toggle("is-dragging", inBlock);
-      if (inBlock) {
-        row.style.transform = `translateY(${dy}px)`;
+      const k = block.indexOf(j);
+      row.classList.toggle("is-dragging", k >= 0);
+      if (k >= 0) {
+        row.style.transform = `translateY(${((clamp(top, 0, others) + k) - j) * rowHeight}px)`;
         return;
       }
-      const rest = j < index ? j : j - size;
       const final = rest < target ? rest : rest + size;
+      rest++;
       row.style.transform = final !== j ? `translateY(${(final - j) * rowHeight}px)` : "";
     });
   }
@@ -2033,21 +2038,28 @@
       return;
     }
 
-    const { row, index, size } = state;
-    if (state.target === null || state.target === index) return;
-
-    const block = layerRows.slice(index, index + size);
-    const remaining = layerRows.filter((_, j) => j < index || j >= index + size);
+    if (state.target === null) return;
+    const block = state.block.map((j) => layerRows[j]);
+    const remaining = layerRows.filter((_, j) => !state.block.includes(j));
     let target = state.target;
 
-    if (row.kind === "group") {
+    // 제자리에 놓았으면 (붙어 있던 묶음이 그대로) 아무것도 안 함
+    const contiguous = state.block.every((j, k) => j === state.block[0] + k);
+    if (contiguous && target === state.block[0]) return;
+
+    const movedGroups = new Set(block.filter((entry) => entry.kind === "group").map((entry) => entry.group.gid));
+    if (movedGroups.size) {
       // 그룹 안에 그룹은 넣지 않음 → 그 그룹 위로
       while (target > 0 && remaining[target]?.child) target--;
-    } else {
-      // 펼친 그룹의 줄 사이에 놓으면 그 그룹으로 들어가고, 밖에 놓으면 그룹에서 빠짐
-      const below = remaining[target];
-      row.item.group = below?.child ? below.gid : null;
     }
+
+    // 펼친 그룹의 줄 사이에 놓으면 그 그룹으로 들어가고, 밖에 놓으면 그룹에서 빠짐
+    // (그룹째 옮기는 경우 그 그룹의 줄들은 그대로)
+    const below = remaining[target];
+    block.forEach((entry) => {
+      if (entry.kind !== "item" || movedGroups.has(entry.item.group)) return;
+      entry.item.group = !movedGroups.size && below?.child ? below.gid : null;
+    });
 
     // 줄 순서(위에서부터) → items 배열 순서(아래에서부터)
     const order = [...remaining.slice(0, target), ...block, ...remaining.slice(target)]
@@ -2638,6 +2650,22 @@
 
     if (sampling && code === "Escape") {
       stopSampling();
+      return;
+    }
+
+    // 모양 자르기 중: 캔버스 전체가 아니라 방금 그린 점(획) 하나만 되돌림
+    if (cutting && mod && (code === "KeyZ" || code === "KeyY")) {
+      event.preventDefault();
+      if (action) return;
+      if (code === "KeyZ" && !event.shiftKey) {
+        const last = cutting.points.pop();
+        if (last) cutting.undone.push(last);
+      } else {
+        const again = cutting.undone.pop();
+        if (again) cutting.points.push(again);
+      }
+      cutting.closable = false;
+      builder.classList.remove("is-pen-closing");
       return;
     }
 
