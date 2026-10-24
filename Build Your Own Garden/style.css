@@ -413,7 +413,7 @@ body.is-falling .glass {
   font-family: inherit;
 
   color: var(--red);
-  font-size: clamp(11px, 1.05vw, 14px);
+  font-size: clamp(14px, 1.45vw, 19px);
   font-weight: 400;
   text-decoration: none;
   white-space: nowrap;

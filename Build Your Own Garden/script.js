@@ -593,6 +593,7 @@ const ROLL_SPEED = 260;         // 더미를 타고 굴러 내려가는 속도(p
 
 startButton.addEventListener("click", () => {
   if (isFalling) return;
+  window.gardenSound?.start();
 
   startCollapse();
 });
@@ -768,6 +769,12 @@ function startCollapse() {
     const localY = body.baseY + body.y - lineY;
 
     if (localY < restY || body.vy <= 0) return;
+
+    // 처음 바닥(또는 쌓인 더미)에 닿을 때 작은 톡
+    if (!body.landed) {
+      body.landed = true;
+      window.gardenSound?.land(body.vy);
+    }
 
     body.y = restY + lineY - body.baseY;
 
