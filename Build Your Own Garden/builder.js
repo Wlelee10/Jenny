@@ -417,7 +417,7 @@
     filterArrows[1].disabled = !right;
   }
 
-  // < > : 가려진 다음(이전) 카테고리 하나가 다 보일 만큼 이동
+  // < > : 한 화면만큼 크게 넘김 (가장자리에 걸친 카테고리가 맨 앞에 오도록 맞춤)
   function stepCategories(dir) {
     const buttons = [...filterTrack.querySelectorAll("button[data-category]")];
     const view = filterTrack.scrollLeft;
@@ -426,12 +426,14 @@
     let target;
     if (dir > 0) {
       const next = buttons.find((b) => b.offsetLeft + b.offsetWidth > view + width - fade + 1);
-      target = next ? next.offsetLeft + next.offsetWidth - width + fade : view + width;
+      target = next ? next.offsetLeft - fade : view + width;
     } else {
-      const prev = buttons.reverse().find((b) => b.offsetLeft < view + fade - 1);
-      target = prev ? prev.offsetLeft - fade : 0;
+      const page = view - (width - fade * 2);
+      const first = buttons.find((b) => b.offsetLeft - fade >= page);
+      target = first ? first.offsetLeft - fade : 0;
+      if (target >= view - 1) target = page; // 한 칸도 안 움직이면 그냥 한 화면만큼
     }
-    filterTrack.scrollTo({ left: target });
+    filterTrack.scrollTo({ left: Math.max(0, target) });
   }
 
   // 고른 카테고리가 가장자리에 걸쳐 있으면 다 보이게
