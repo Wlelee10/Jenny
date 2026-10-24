@@ -28,11 +28,19 @@
   const downloadButton = $("#downloadButton");
   const viewGalleryButton = $("#viewGalleryButton");
   const backButton = $("#backButton");
+  const viewer = $("#viewer");
+  const viewerFrame = viewer.querySelector(".viewer-frame");
+  const viewerFigure = viewer.querySelector(".viewer-figure");
+  const viewerImage = $("#viewerImage");
+  const viewerCaption = $("#viewerCaption");
+  const viewerLikeSlot = $("#viewerLikeSlot");
+  const viewerNavs = [...viewer.querySelectorAll(".viewer-nav")];
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
   const POLL_MS = 5000;           // 휴먼 갤러리 새로고침 간격 (다른 사람이 저장한 정원)
   const LOCAL_KEY = "byog-gardens";
+  const LIKED_KEY = "byog-liked";  // 이 브라우저에서 좋아요를 누른 정원들
 
   let finished = null;            // builder.js가 넘겨준 결과
   let stageClone = null;
@@ -73,6 +81,7 @@
     fragments: row.fragments,
     seconds: row.seconds,
     image: cloudImage(row.image),
+    likes: Number(row.likes) || 0,
     createdAt: Date.parse(row.created_at)
   });
 
@@ -96,6 +105,7 @@
 
   const store = {
     mode: null,
+    likesShared: null, // Supabase에 likes 칸과 like_garden 함수가 있으면 true (모두가 같은 숫자를 봄)
 
     async detect() {
       if (this.mode) return this.mode;
@@ -115,10 +125,19 @@
 
     async list() {
       if ((await this.detect()) === "cloud") {
-        const response = await fetch(
-          `${cloudBase}/rest/v1/gardens?select=id,title,fragments,seconds,image,created_at&order=created_at.asc`,
+        const columns = "id,title,fragments,seconds,image,created_at";
+        const load = (select) => fetch(
+          `${cloudBase}/rest/v1/gardens?select=${select}&order=created_at.asc`,
           { headers: cloudHeaders(), cache: "no-store" }
         );
+        // likes 칸이 아직 없으면(설정 전) 예전처럼 불러오고 좋아요는 이 브라우저에서만
+        let response = this.likesShared === false ? null : await load(`${columns},likes`);
+        if (response && response.ok) {
+          this.likesShared = true;
+        } else {
+          if (response) this.likesShared = false;
+          response = await load(columns);
+        }
         if (!response.ok) throw new Error("Could not load the gallery.");
         return (await response.json()).map(fromCloud);
       }
@@ -132,6 +151,19 @@
       } catch {
         return [];
       }
+    },
+
+    // 좋아요 +1 / -1 → 새 숫자 (모두가 공유할 수 없으면 null)
+    async like(id, on) {
+      if (this.mode !== "cloud" || !this.likesShared) return null;
+      const response = await fetch(`${cloudBase}/rest/v1/rpc/like_garden`, {
+        method: "POST",
+        headers: cloudHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ garden_id: id, delta: on ? 1 : -1 })
+      });
+      if (!response.ok) throw new Error("Could not update the like.");
+      const count = await response.json();
+      return typeof count === "number" ? count : null;
     },
 
     async save(entry, board) {
@@ -348,6 +380,7 @@
 
   function showTab(name) {
     if (name === activeTab) return;
+    if (!viewer.hidden) closeViewer();
 
     const next = folders.find((folder) => folder.dataset.folder === name);
     const quick = reduceMotion.matches;
@@ -411,6 +444,7 @@
     const card = document.createElement("figure");
     card.className = "card";
     if (id) card.dataset.id = id;
+    card.viewer = { src, alt, lines }; // 확대 보기에서 씀
 
     const frame = document.createElement("div");
     frame.className = "card-image";
@@ -442,6 +476,90 @@
   ========================================= */
 
   const shownGardens = new Set();
+  const gardenEntries = new Map(); // id → { likes }
+  const pendingLikes = new Set();  // 서버 응답을 기다리는 중
+
+  let liked;
+  try {
+    liked = new Set(JSON.parse(localStorage.getItem(LIKED_KEY) ?? "[]"));
+  } catch {
+    liked = new Set();
+  }
+
+  function saveLiked() {
+    try {
+      localStorage.setItem(LIKED_KEY, JSON.stringify([...liked]));
+    } catch {
+      // 저장소를 쓸 수 없으면 이번 방문 동안만 기억
+    }
+  }
+
+  // 좋아요 수: 공유되면 서버 숫자, 아니면 이 브라우저에서 누른 것만
+  function likeCount(id) {
+    if (store.likesShared) return gardenEntries.get(id)?.likes ?? 0;
+    return liked.has(id) ? 1 : 0;
+  }
+
+  const HEART = "M12 20.6s-7.4-4.5-9.4-9C1.2 8.3 3.1 4.6 6.7 4.6c2 0 3.6 1.1 5.3 3.1 1.7-2 3.3-3.1 5.3-3.1 3.6 0 5.5 3.7 4.1 7C19.4 16.1 12 20.6 12 20.6z";
+
+  function makeLikeButton(id) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "like-button";
+    button.dataset.likeId = id;
+    button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${HEART}" /></svg><span class="like-count"></span>`;
+    paintLike(button);
+    return button;
+  }
+
+  function paintLike(button) {
+    const id = button.dataset.likeId;
+    const on = liked.has(id);
+    button.classList.toggle("is-liked", on);
+    button.setAttribute("aria-pressed", String(on));
+    button.setAttribute("aria-label", on ? "Unlike" : "Like");
+    button.querySelector(".like-count").textContent = String(likeCount(id));
+  }
+
+  function paintLikes(id) {
+    result.querySelectorAll(`.like-button[data-like-id="${CSS.escape(id)}"]`).forEach(paintLike);
+  }
+
+  async function toggleLike(id, button) {
+    if (pendingLikes.has(id)) return;
+    const on = !liked.has(id);
+    const entry = gardenEntries.get(id) ?? { likes: 0 };
+    gardenEntries.set(id, entry);
+
+    // 먼저 화면에 바로 반영
+    if (on) liked.add(id);
+    else liked.delete(id);
+    if (store.likesShared) entry.likes = Math.max(0, entry.likes + (on ? 1 : -1));
+    saveLiked();
+    paintLikes(id);
+    if (on && button && !reduceMotion.matches) {
+      result.querySelectorAll(`.like-button[data-like-id="${CSS.escape(id)}"]`).forEach((b) => {
+        b.classList.remove("is-popping");
+        void b.offsetWidth;
+        b.classList.add("is-popping");
+      });
+    }
+
+    pendingLikes.add(id);
+    try {
+      const count = await store.like(id, on);
+      if (count !== null) entry.likes = count;
+    } catch {
+      // 실패하면 되돌림
+      if (on) liked.delete(id);
+      else liked.add(id);
+      if (store.likesShared) entry.likes = Math.max(0, entry.likes + (on ? -1 : 1));
+      saveLiked();
+    } finally {
+      pendingLikes.delete(id);
+      paintLikes(id);
+    }
+  }
 
   async function refreshGallery() {
     let list;
@@ -452,7 +570,13 @@
     }
 
     list.forEach((entry) => {
-      if (shownGardens.has(entry.id)) return;
+      // 이미 있는 카드는 좋아요 수만 새로 (내가 누르고 응답을 기다리는 중이면 그대로)
+      if (!pendingLikes.has(entry.id)) gardenEntries.set(entry.id, { likes: entry.likes ?? 0 });
+
+      if (shownGardens.has(entry.id)) {
+        paintLikes(entry.id);
+        return;
+      }
       shownGardens.add(entry.id);
 
       const card = makeCard({
@@ -462,6 +586,7 @@
         lazy: false,
         lines: [entry.title, `${entry.fragments} /200 fragments`, formatTime(entry.seconds)]
       });
+      card.querySelector("figcaption").appendChild(makeLikeButton(entry.id));
       if (savedEntry && entry.id === savedEntry.id) card.classList.add("is-mine");
       galleryGrid.appendChild(card);
     });
@@ -479,6 +604,147 @@
     clearInterval(pollTimer);
     pollTimer = null;
   }
+
+  /* =========================================
+     VIEWER: 사진을 누르면 살짝 확대되어 크게 보임
+     < > (또는 키보드 ← →, 밀기)로 다음 장, 어두운 곳을 누르면 다시 갤러리로
+  ========================================= */
+
+  let viewerGrid = null;
+  let viewerIndex = 0;
+
+  const viewerCards = () => (viewerGrid ? [...viewerGrid.querySelectorAll(".card")] : []);
+
+  function fillViewer(card) {
+    const { src, alt, lines } = card.viewer;
+    viewerImage.src = src;
+    viewerImage.alt = alt;
+    viewerCaption.replaceChildren(...lines.map((line) => {
+      const row = document.createElement("span");
+      row.textContent = line;
+      return row;
+    }));
+    viewerLikeSlot.replaceChildren();
+    if (viewerGrid === galleryGrid && card.dataset.id) {
+      viewerLikeSlot.appendChild(makeLikeButton(card.dataset.id));
+    }
+    const cards = viewerCards();
+    viewerNavs[0].disabled = viewerIndex <= 0;
+    viewerNavs[1].disabled = viewerIndex >= cards.length - 1;
+  }
+
+  // 카드의 사진 자리 → 확대 자리 (FLIP)
+  function frameFlight(card) {
+    const from = card.querySelector(".card-image").getBoundingClientRect();
+    const to = viewerFrame.getBoundingClientRect();
+    if (!from.width || !to.width) return null;
+    return `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width})`;
+  }
+
+  function openViewer(grid, card) {
+    viewerGrid = grid;
+    viewerIndex = viewerCards().indexOf(card);
+    if (viewerIndex < 0) return;
+
+    fillViewer(card);
+    viewer.hidden = false;
+
+    const quick = reduceMotion.matches;
+    viewer.animate([{ opacity: 0 }, { opacity: 1 }], { duration: quick ? 1 : 300, easing: "ease" });
+    const away = frameFlight(card);
+    if (away) {
+      viewerFrame.animate([{ transform: away }, { transform: "none" }], { duration: quick ? 1 : 460, easing: EASE });
+    }
+    [viewerCaption, viewerLikeSlot].forEach((element) => element.animate(
+      [{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1 }],
+      { duration: quick ? 1 : 520, easing: "ease" }
+    ));
+  }
+
+  function stepViewer(dir) {
+    const cards = viewerCards();
+    const next = viewerIndex + dir;
+    if (viewer.hidden || next < 0 || next >= cards.length) return;
+    viewerIndex = next;
+    fillViewer(cards[next]);
+    if (!reduceMotion.matches) {
+      viewerFigure.animate(
+        [{ opacity: 0, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: "none" }],
+        { duration: 340, easing: EASE }
+      );
+    }
+  }
+
+  let closingViewer = false;
+
+  function closeViewer() {
+    if (viewer.hidden || closingViewer) return;
+    const quick = reduceMotion.matches;
+    const card = viewerCards()[viewerIndex];
+
+    // 지금 보고 있는 사진의 카드가 보이도록 스크롤 → 그 자리로 돌아가며 작아짐
+    card?.scrollIntoView({ block: "nearest" });
+    const away = card ? frameFlight(card) : null;
+
+    closingViewer = true;
+    const fade = viewer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: quick ? 1 : 300, easing: "ease", fill: "forwards" });
+    if (away) viewerFrame.animate([{ transform: "none" }, { transform: away }], { duration: quick ? 1 : 360, easing: EASE, fill: "forwards" });
+
+    const done = () => {
+      viewer.hidden = true;
+      closingViewer = false;
+      viewer.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
+      viewerGrid = null;
+    };
+    fade.finished.then(done, done);
+  }
+
+  [aiLibraryGrid, galleryGrid].forEach((grid) => {
+    grid.addEventListener("click", (event) => {
+      const like = event.target.closest(".like-button");
+      if (like) {
+        toggleLike(like.dataset.likeId, like);
+        return;
+      }
+      const image = event.target.closest(".card-image");
+      if (image) openViewer(grid, image.closest(".card"));
+    });
+  });
+
+  viewer.addEventListener("click", (event) => {
+    const like = event.target.closest(".like-button");
+    if (like) {
+      toggleLike(like.dataset.likeId, like);
+      return;
+    }
+    const nav = event.target.closest(".viewer-nav");
+    if (nav) {
+      if (!nav.disabled) stepViewer(Number(nav.dataset.dir));
+      return;
+    }
+    // 사진과 글자 밖(어두운 곳)을 누르면 닫힘
+    if (!event.target.closest(".viewer-frame, .viewer-caption, .viewer-like-slot")) closeViewer();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (viewer.hidden) return;
+    if (event.key === "Escape") closeViewer();
+    else if (event.key === "ArrowRight") stepViewer(1);
+    else if (event.key === "ArrowLeft") stepViewer(-1);
+  });
+
+  // 터치: 사진을 좌우로 밀어서 넘김
+  let swipeStart = null;
+  viewerFrame.addEventListener("pointerdown", (event) => {
+    swipeStart = { x: event.clientX, y: event.clientY };
+  });
+  viewerFrame.addEventListener("pointerup", (event) => {
+    if (!swipeStart) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    swipeStart = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) stepViewer(dx < 0 ? 1 : -1);
+  });
 
   // 다른 탭을 보다가 돌아왔을 때 바로 새로고침
   document.addEventListener("visibilitychange", () => {

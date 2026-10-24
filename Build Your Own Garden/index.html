@@ -283,6 +283,17 @@
       </div>
     </div>
 
+    <!-- 갤러리 사진 확대 보기: 어두운 곳을 누르면 닫힘, < > 로 다음 장 -->
+    <div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Garden viewer" hidden>
+      <button class="viewer-nav" type="button" data-dir="-1" aria-label="Previous"><svg viewBox="0 0 10 18" aria-hidden="true"><path d="M9 1 1 9l8 8" /></svg></button>
+      <figure class="viewer-figure">
+        <div class="viewer-frame"><img id="viewerImage" alt="" draggable="false" /></div>
+        <figcaption class="viewer-caption" id="viewerCaption"></figcaption>
+        <div class="viewer-like-slot" id="viewerLikeSlot"></div>
+      </figure>
+      <button class="viewer-nav" type="button" data-dir="1" aria-label="Next"><svg viewBox="0 0 10 18" aria-hidden="true"><path d="M1 1l8 8-8 8" /></svg></button>
+    </div>
+
   </section>
 
   <script src="script.js"></script>

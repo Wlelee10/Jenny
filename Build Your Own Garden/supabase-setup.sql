@@ -31,3 +31,5 @@ on conflict (id) do update
 drop policy if exists "anyone can upload a garden image" on storage.objects;
 create policy "anyone can upload a garden image" on storage.objects
   for insert to anon, authenticated with check (bucket_id = 'gardens');
+
+-- 3. 좋아요 → supabase-likes.sql (나중에 추가된 기능, 따로 한 번 실행)
