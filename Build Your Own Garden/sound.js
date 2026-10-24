@@ -2,6 +2,7 @@
    BUILD YOUR OWN GARDEN
    SOUND — 파일 없이 브라우저에서 바로 합성하는 작은 효과음
    hover(): 버튼에 마우스를 올릴 때 / start(): START를 누를 때 / land(): fragment가 바닥에 쌓일 때
+   START 버튼의 호버음 · 클릭음은 직접 만든 파일 (sounds/)
    (브라우저 규칙상 화면을 한 번 누르거나 키를 누른 뒤부터 소리가 남)
 ========================================= */
 
@@ -11,6 +12,51 @@
   let master = null;
   let noise = null;
   let lastLand = 0;
+
+  // 파일 효과음: 미리 받아 두었다가 바로 재생
+  const FILES = { startHover: "sounds/start-hover.mp3", startClick: "sounds/start-click.mp3" };
+  const buffers = {};
+  const fallback = {};
+  Object.entries(FILES).forEach(([key, src]) => {
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    fallback[key] = audio;
+  });
+
+  function loadBuffers() {
+    Object.entries(FILES).forEach(([key, src]) => {
+      if (buffers[key] !== undefined) return;
+      buffers[key] = null;
+      fetch(src)
+        .then((response) => response.arrayBuffer())
+        .then((data) => new Promise((resolve, reject) => context.decodeAudioData(data, resolve, reject)))
+        .then((buffer) => { buffers[key] = buffer; })
+        .catch(() => { delete buffers[key]; });
+    });
+  }
+
+  function playFile(key, volume = 1) {
+    const ctx = ready();
+    if (ctx && buffers[key]) {
+      const source = ctx.createBufferSource();
+      const amp = ctx.createGain();
+      source.buffer = buffers[key];
+      amp.gain.value = volume;
+      source.connect(amp).connect(master);
+      source.start();
+      return;
+    }
+    // 아직 준비 전이면 일반 오디오로
+    const audio = fallback[key];
+    if (!audio) return;
+    try {
+      audio.currentTime = 0;
+      audio.volume = volume;
+      audio.play().catch(() => {});
+    } catch {
+      // 재생할 수 없으면 조용히 넘어감
+    }
+  }
 
   function ready() {
     if (!AudioContext) return null;
@@ -24,6 +70,7 @@
       noise = context.createBuffer(1, context.sampleRate, context.sampleRate);
       const data = noise.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      loadBuffers();
     }
     if (context.state === "suspended") context.resume().catch(() => {});
     return context.state === "running" ? context : null;
@@ -71,20 +118,19 @@
   }
 
   const sound = {
-    // 아주 작은 유리 톡
+    startHover() {
+      playFile("startHover");
+    },
+
+    // 아주 작은 유리 톡 (START 외의 버튼)
     hover() {
       if (!ready()) return;
       tone({ freq: 1760, gain: 0.03, decay: 0.07 });
       tone({ freq: 2640, gain: 0.008, decay: 0.05 });
     },
 
-    // 맑은 두 음 + 아래로 빨려 들어가는 바람
     start() {
-      if (!ready()) return;
-      tone({ freq: 659.3, gain: 0.05, attack: 0.01, decay: 1.4 });
-      tone({ freq: 987.8, gain: 0.035, attack: 0.01, decay: 1.2, at: 0.09 });
-      tone({ freq: 1318.5, gain: 0.012, attack: 0.01, decay: 0.9, at: 0.09 });
-      hiss({ from: 2600, to: 380, q: 0.8, gain: 0.05, attack: 0.25, decay: 1.3, at: 0.05 });
+      playFile("startClick");
     },
 
     // fragment가 바닥에 닿는 작은 톡 (세게 떨어질수록 조금 더 또렷)
@@ -108,6 +154,7 @@
     if (event.pointerType === "touch") return;
     const button = event.target.closest?.(HOVER);
     if (!button || button.disabled || button.contains(event.relatedTarget)) return;
-    sound.hover();
+    if (button.matches(".start-button")) sound.startHover();
+    else sound.hover();
   });
 })();
