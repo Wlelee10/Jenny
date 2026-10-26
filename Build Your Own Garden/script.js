@@ -157,17 +157,24 @@ function showPlayIfStopped() {
 }
 
 /* =========================================
-   GATE ART: 서로를 향해 뻗는 두 손 (점으로 된 가로줄)
-   손 모양 지도(gate-hands.png: 진할수록 손)에서 왼손은 왼쪽 위, 오른손은 오른쪽 아래에 놓고
-   칸마다 점 하나 — 꽉 찬 곳은 큰 점, 그늘 · 가장자리는 작은 점
+   GATE ART: 서로를 향해 뻗는 두 손 (점)
+   참고 이미지의 점을 하나하나 그대로 옮김 (gate-dots.json: 위치 · 크기, 화면 폭 기준 비율)
+   → 화면 폭에 맞춰 같은 배치로 다시 그림 (세로는 화면 가운데 기준)
 ========================================= */
 
 const gateArt = document.querySelector("#gateArt");
-const handMap = new Image();
-handMap.src = "gate-hands.png";
+let gateDots = null;
+
+fetch("gate-dots.json")
+  .then((response) => response.json())
+  .then((data) => {
+    gateDots = data;
+    drawGateArt();
+  })
+  .catch(() => {});
 
 function drawGateArt() {
-  if (!gateArt?.isConnected || !handMap.complete || !handMap.naturalWidth) return;
+  if (!gateArt?.isConnected || !gateDots) return;
   const width = gateArt.clientWidth;
   const height = gateArt.clientHeight;
   if (!width || !height) return;
@@ -179,54 +186,21 @@ function drawGateArt() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
   context.clearRect(0, 0, width, height);
 
-  // 지도(참고 이미지)에서 왼손 · 오른손을 따로 놓음 (참고 배치)
-  //   왼손: 왼쪽 위 (세로 중심 40%) / 오른손: 오른쪽 아래 (세로 중심 70%), 둘 다 화면 끝에 붙음
-  const mapW = Math.max(width, height * 1.25);
-  const mapH = mapW * (handMap.naturalHeight / handMap.naturalWidth);
-  const SPLIT = 0.47;
-
-  // 점 칸 (참고 3: 줄 간격 1.1%, 줄 안의 점 간격은 그 절반 — 큰 점은 거의 맞닿음)
-  const unit = mapW / 1000;
-  const gapX = 5.5 * unit;
-  const gapY = 11 * unit;
-  const bigR = 2.6 * unit;
-  const smallR = 0.85 * unit;
-  const cols = Math.ceil(width / gapX);
-  const rows = Math.ceil(height / gapY);
-
-  const sample = document.createElement("canvas");
-  sample.width = cols;
-  sample.height = rows;
-  const s = sample.getContext("2d");
-  s.imageSmoothingEnabled = true;
-  const mw = handMap.naturalWidth;
-  const mh = handMap.naturalHeight;
-  const place = (sx, sw, x, centerY, mapCenter) => {
-    const y = centerY - mapCenter * mapH;
-    s.drawImage(handMap, sx * mw, 0, sw * mw, mh, (x + sx * mapW) / gapX, y / gapY, (sw * mapW) / gapX, mapH / gapY);
-  };
-  place(0, SPLIT, 0, height * 0.435, 0.44);                      // 왼손: 세로 중심 43.5%
-  place(SPLIT, 1 - SPLIT, width - mapW, height * 0.605, 0.51);   // 오른손: 세로 중심 60.5%
-  const data = s.getImageData(0, 0, cols, rows).data;
-
+  // 참고 이미지(폭 1 · 높이 ratio)를 화면 폭에 맞추고 세로 가운데
+  const shiftY = height / 2 - (gateDots.ratio * width) / 2;
+  const list = gateDots.dots;
   context.fillStyle = "#111111";
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const a = data[(r * cols + c) * 4 + 3] / 255;
-      if (a < 0.1) continue;
-      context.beginPath();
-      context.arc((c + 0.5) * gapX, (r + 0.5) * gapY, a > 0.42 ? bigR : smallR, 0, Math.PI * 2);
-      context.fill();
-    }
+  for (let i = 0; i < list.length; i += 3) {
+    const x = (list[i] / 10000) * width;
+    const y = (list[i + 1] / 10000) * width + shiftY;
+    const r = ((list[i + 2] / 100000) * width) / 2;
+    context.beginPath();
+    context.arc(x, y, r, 0, Math.PI * 2);
+    context.fill();
   }
-  context.globalAlpha = 1;
 }
 
-if (gateArt) {
-  handMap.addEventListener("load", drawGateArt);
-  drawGateArt();
-  window.addEventListener("resize", drawGateArt);
-}
+if (gateArt) window.addEventListener("resize", drawGateArt);
 
 async function playOpening() {
   if (!opening || !openingVideo) {
