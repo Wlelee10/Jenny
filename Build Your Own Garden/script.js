@@ -561,6 +561,30 @@ async function playOpening() {
     }
   };
 
+  // 호버: 빛이 아래에서 양옆 외곽을 따라 위 가운데까지 차오름 (나갈 때는 반대로)
+  const halo = openingEnter.querySelector(".gate-halo");
+  let sweep = 0;
+  let sweepTarget = 0;
+  let sweepFrame = 0;
+  const SWEEP_MS = 650;
+  const runSweep = () => {
+    cancelAnimationFrame(sweepFrame);
+    let last = performance.now();
+    const step = (now) => {
+      const dt = now - last;
+      last = now;
+      const dir = Math.sign(sweepTarget - sweep);
+      sweep = Math.max(0, Math.min(1, sweep + (dir * dt) / (dir > 0 ? SWEEP_MS : SWEEP_MS * 0.6)));
+      const e = sweep < 0.5 ? 2 * sweep * sweep : 1 - Math.pow(-2 * sweep + 2, 2) / 2;
+      halo?.style.setProperty("--sweep", `${(e * 197).toFixed(2)}deg`);
+      halo?.classList.toggle("is-full", sweep >= 1); // 다 감싸면 이음매 없이 전체
+      if (sweep !== sweepTarget) sweepFrame = requestAnimationFrame(step);
+    };
+    sweepFrame = requestAnimationFrame(step);
+  };
+  openingEnter.addEventListener("pointerenter", () => { sweepTarget = 1; runSweep(); });
+  openingEnter.addEventListener("pointerleave", () => { sweepTarget = 0; runSweep(); });
+
   openingEnter.addEventListener("click", (event) => {
     event.stopPropagation();
     if (gateReady) startVideo();

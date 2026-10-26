@@ -666,13 +666,42 @@ body.is-falling .glass {
   transition: top 320ms ease, bottom 320ms ease, left 320ms ease, right 320ms ease, opacity 320ms ease, filter 320ms ease;
 }
 
-.gate-enter:hover::after {
-  top: calc(var(--k) * -0.0035);
-  bottom: calc(var(--k) * -0.0035);
-  left: calc(var(--k) * -0.0035);
-  right: calc(var(--k) * -0.0035);
+/* 호버: 아래의 빛에서 시작해 양옆 외곽을 따라 올라가 위 가운데에서 만나고, 버튼 전체가 빛남 */
+.gate-halo {
+  --sweep: 0deg;
+
+  position: absolute;
+  inset: calc(var(--k) * -0.0032);
+  z-index: -2;
+
+  border-radius: 999px;
+  background: conic-gradient(from 180deg, #9cf0b8, #7fd3ff, #b58cff, #ff8bd1, #ffd36b, #ff8bd1, #b58cff, #7fd3ff, #9cf0b8);
+  filter: blur(calc(var(--k) * 0.0045));
+  pointer-events: none;
+
+  /* 아래 가운데(180deg)에서 양쪽으로 --sweep 만큼만 보임 */
+  -webkit-mask-image: conic-gradient(from 180deg, #000 0deg, #000 calc(var(--sweep) - 16deg), transparent var(--sweep), transparent calc(360deg - var(--sweep)), #000 calc(376deg - var(--sweep)));
+  mask-image: conic-gradient(from 180deg, #000 0deg, #000 calc(var(--sweep) - 16deg), transparent var(--sweep), transparent calc(360deg - var(--sweep)), #000 calc(376deg - var(--sweep)));
+
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.gate-halo.is-full {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* --sweep 은 JS가 0deg → 197deg 로 (사파리 · 크롬 모두 같은 속도로) */
+.gate-enter:hover .gate-halo {
   opacity: 1;
-  filter: blur(calc(var(--k) * 0.007));
+}
+
+/* 다 감싼 뒤에는 전체가 은은하게 더 밝아짐 */
+.gate-enter:hover::after {
+  opacity: 1;
+  filter: blur(calc(var(--k) * 0.0065));
+  transition-delay: 450ms;
 }
 
 .gate-enter[hidden] {
