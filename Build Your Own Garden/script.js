@@ -188,6 +188,17 @@ function handBounds(dots, right) {
   return box;
 }
 
+// 배치 계산 (창 크기 · 글꼴이 바뀔 때) → 그리기는 매 프레임 gateFrame()
+const gateScene = {
+  ready: false, width: 0, height: 0, k: 0, context: null,
+  dots: null,              // Float32Array [x, y, r, baseAlpha, heat] × n
+  tips: null,              // 두 손끝 위치
+  pointer: null,           // 마우스 위치 (손 영역 위일 때)
+  reach: 0,                // 손끝이 커서를 향해 뻗은 정도 0~1
+  last: 0,
+  running: false
+};
+
 function drawGateArt() {
   if (!gateArt?.isConnected || !gateDots) return;
   const width = gateArt.clientWidth;
@@ -199,7 +210,6 @@ function drawGateArt() {
   gateArt.height = Math.round(height * ratio);
   const context = gateArt.getContext("2d");
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
-  context.clearRect(0, 0, width, height);
 
   // 손 크기 k (참고 이미지 폭 1 → k px): 화면이 세로로 길수록 크게
   const k = Math.max(width, height * 2);
@@ -221,34 +231,153 @@ function drawGateArt() {
 
   // 왼손: 손끝이 가운데에서 0.092k 왼쪽, 세로 중심은 글보다 살짝 위
   // 오른손: 손끝이 가운데에서 0.066k 오른쪽, 세로 중심은 글보다 0.113k 아래
-  const dots = gateDots.dots;
-  const L = handBounds(dots, false);
-  const R = handBounds(dots, true);
+  const source = gateDots.dots;
+  const L = handBounds(source, false);
+  const R = handBounds(source, true);
   const leftDX = cx - 0.092 * k - L.r * k;
   const leftDY = cy - 0.009 * k - ((L.t + L.b) / 2) * k;
   const rightDX = cx + 0.066 * k - R.l * k;
   const rightDY = cy + 0.113 * k - ((R.t + R.b) / 2) * k;
 
-  context.fillStyle = "#111111";
-  for (let i = 0; i < dots.length; i += 3) {
-    const fx = dots[i] / 10000;
+  const old = gateScene.dots;
+  const dots = new Float32Array((source.length / 3) * 5);
+  const tips = { left: { x: -Infinity, y: 0 }, right: { x: Infinity, y: 0 } };
+  let n = 0;
+  for (let i = 0; i < source.length; i += 3) {
+    const fx = source[i] / 10000;
     const right = fx >= 0.47;
     const x = fx * k + (right ? rightDX : leftDX);
-    const y = (dots[i + 1] / 10000) * k + (right ? rightDY : leftDY);
-    const r = ((dots[i + 2] / 100000) * k) / 2;
-    if (x < -r || x > width + r || y < -r || y > height + r) continue;
+    const y = (source[i + 1] / 10000) * k + (right ? rightDY : leftDY);
+    const r = ((source[i + 2] / 100000) * k) / 2;
+
+    // 손끝 = 가운데에 가장 가까운 점
+    if (!right && x > tips.left.x) tips.left = { x, y };
+    if (right && x < tips.right.x) tips.right = { x, y };
 
     const dx = Math.max(area.l - x, 0, x - area.r);
     const dy = Math.max(area.t - y, 0, y - area.b);
     const t = Math.min(1, Math.hypot(dx, dy) / FADE);
-    context.globalAlpha = 0.05 + 0.95 * t * t * (3 - 2 * t);
+    dots[n] = x;
+    dots[n + 1] = y;
+    dots[n + 2] = r;
+    dots[n + 3] = 0.05 + 0.95 * t * t * (3 - 2 * t);
+    dots[n + 4] = old && old.length === dots.length ? old[n + 4] : 0; // 빨간 자국은 유지
+    n += 5;
+  }
 
+  Object.assign(gateScene, { ready: true, width, height, k, context, dots, tips, area });
+  gateFrame(performance.now(), true);
+}
+
+/* ---------- 호버 인터랙션 ----------
+   1. 커서 주변 점이 살짝 커지고 진해짐
+   2. 커서가 지나간 점은 잠깐 빨갛게 물들었다가 천천히 검정으로 (사람의 손길)
+   3. 커서가 두 손 사이(글 · 버튼 쪽)에 오면 양쪽 손끝에서 점이 커서를 향해 뻗어 나옴 */
+
+const RED = [179, 20, 30];
+
+function gateFrame(now, once) {
+  const scene = gateScene;
+  if (!scene.ready) return;
+  const { context, width, height, k, dots, tips, pointer } = scene;
+  const dt = Math.min(0.05, Math.max(0, (now - (scene.last || now)) / 1000));
+  scene.last = now;
+
+  const near = 0.05 * k;   // 커서 반응 거리
+  const touch = 0.018 * k; // 빨갛게 물드는 거리
+  const cool = Math.pow(0.35, dt); // 빨간 자국이 식는 속도 (약 1초에 1/3)
+
+  // 손끝이 뻗는 정도: 커서가 두 손끝 사이에 있으면 늘어나고, 아니면 줄어듦
+  const between = pointer && pointer.x > tips.left.x && pointer.x < tips.right.x;
+  scene.reach += ((between ? 1 : 0) - scene.reach) * Math.min(1, dt * (between ? 3 : 5));
+
+  context.clearRect(0, 0, width, height);
+  let active = scene.reach > 0.002;
+
+  for (let i = 0; i < dots.length; i += 5) {
+    const x = dots[i];
+    const y = dots[i + 1];
+    let r = dots[i + 2];
+    if (x < -r * 2 || x > width + r * 2 || y < -r * 2 || y > height + r * 2) continue;
+    let alpha = dots[i + 3];
+
+    if (pointer) {
+      const d = Math.hypot(x - pointer.x, y - pointer.y);
+      if (d < near) {
+        const p = 1 - d / near;
+        const e = p * p * (3 - 2 * p);
+        r *= 1 + 0.45 * e;
+        alpha += (1 - alpha) * 0.85 * e;
+        active = true;
+      }
+      if (d < touch) dots[i + 4] = Math.max(dots[i + 4], 1 - d / touch);
+    }
+
+    const heat = dots[i + 4];
+    if (heat > 0.004) {
+      dots[i + 4] = heat * cool;
+      active = true;
+    } else {
+      dots[i + 4] = 0;
+    }
+
+    const h = Math.min(1, heat) * 0.85;
+    context.fillStyle = `rgb(${Math.round(17 + (RED[0] - 17) * h)}, ${Math.round(17 + (RED[1] - 17) * h)}, ${Math.round(17 + (RED[2] - 17) * h)})`;
+    context.globalAlpha = Math.max(alpha, h);
     context.beginPath();
     context.arc(x, y, r, 0, Math.PI * 2);
     context.fill();
   }
+
+  // 양쪽 손끝에서 커서를 향해 뻗는 점 줄
+  if (scene.reach > 0.01 && pointer) {
+    const reach = scene.reach * scene.reach * (3 - 2 * scene.reach);
+    const step = 0.0068 * k;
+    const stop = 0.016 * k; // 커서 바로 앞에서 멈춤 — 닿을 듯 말 듯
+    [tips.left, tips.right].forEach((tip) => {
+      const dx = pointer.x - tip.x;
+      const dy = pointer.y - tip.y;
+      const length = Math.max(0, Math.hypot(dx, dy) - stop) * reach;
+      const count = Math.floor(length / step);
+      for (let j = 1; j <= count; j++) {
+        const f = (j * step) / Math.hypot(dx, dy);
+        const along = j / Math.max(count, 1);
+        context.globalAlpha = 0.9 - 0.55 * along;
+        context.fillStyle = along > 0.85 ? `rgb(${RED.join(",")})` : "#111111";
+        context.beginPath();
+        context.arc(tip.x + dx * f, tip.y + dy * f, 0.0016 * k * (1.4 - 0.6 * along), 0, Math.PI * 2);
+        context.fill();
+      }
+    });
+  }
   context.globalAlpha = 1;
+
+  // 움직임이 남아 있으면 계속, 다 멈추면 쉼
+  if (once) return;
+  if (active && gateArt.isConnected) {
+    requestAnimationFrame((time) => gateFrame(time));
+  } else {
+    scene.running = false;
+  }
 }
+
+function wakeGate() {
+  if (gateScene.running || !gateScene.ready) return;
+  gateScene.running = true;
+  gateScene.last = performance.now();
+  requestAnimationFrame((time) => gateFrame(time));
+}
+
+const gateLayer = document.querySelector("#openingGate");
+gateLayer?.addEventListener("pointermove", (event) => {
+  if (event.pointerType === "touch") return;
+  gateScene.pointer = { x: event.clientX, y: event.clientY };
+  wakeGate();
+});
+gateLayer?.addEventListener("pointerleave", () => {
+  gateScene.pointer = null;
+  wakeGate();
+});
 
 if (gateArt) {
   window.addEventListener("resize", drawGateArt);
