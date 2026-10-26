@@ -32,4 +32,24 @@ drop policy if exists "anyone can upload a garden image" on storage.objects;
 create policy "anyone can upload a garden image" on storage.objects
   for insert to anon, authenticated with check (bucket_id = 'gardens');
 
--- 3. 좋아요 → supabase-likes.sql (나중에 추가된 기능, 따로 한 번 실행)
+-- 3. 좋아요 (휴먼 갤러리 하트)
+-- 정원마다 좋아요 수
+alter table public.gardens
+  add column if not exists likes int not null default 0 check (likes >= 0);
+
+-- 좋아요 +1 / -1 만 할 수 있는 함수
+--    (방문자는 표를 직접 고칠 수 없고, 이 함수로 좋아요 수만 한 칸씩 바꿀 수 있음)
+create or replace function public.like_garden(garden_id uuid, delta int)
+returns int
+language sql
+security definer
+set search_path = public
+as $$
+  update public.gardens
+     set likes = greatest(0, likes + case when delta > 0 then 1 else -1 end)
+   where id = garden_id
+  returning likes;
+$$;
+
+revoke all on function public.like_garden(uuid, int) from public;
+grant execute on function public.like_garden(uuid, int) to anon, authenticated;

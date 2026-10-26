@@ -18,8 +18,8 @@ jobs:
         run: |
           CONFIG="Build Your Own Garden/config.js"
           URL=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' "$CONFIG" | head -1)
-          KEY=$(grep -oE 'eyJ[A-Za-z0-9._-]+' "$CONFIG" | head -1)
+          KEY=$(grep -oE 'key: "[^"]+"' "$CONFIG" | head -1 | sed -E 's/key: "(.*)"/\1/')
           curl -fsS --retry 3 --retry-delay 10 \
             "$URL/rest/v1/gardens?select=id&limit=1" \
-            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "apikey: $KEY" \
             -o /dev/null -w "Supabase answered: HTTP %{http_code}\n"

@@ -73,7 +73,12 @@
   const cloudKey = String(cloud.key ?? "").trim();
   const CLOUD_BUCKET = "gardens";
 
-  const cloudHeaders = (extra = {}) => ({ apikey: cloudKey, Authorization: `Bearer ${cloudKey}`, ...extra });
+  // 예전 형식(eyJ… JWT) 키는 Authorization에도 넣고, 새 형식(sb_publishable_…) 키는 apikey로만 보냄
+  const cloudHeaders = (extra = {}) => ({
+    apikey: cloudKey,
+    ...(cloudKey.startsWith("eyJ") ? { Authorization: `Bearer ${cloudKey}` } : {}),
+    ...extra
+  });
   const cloudImage = (file) => `${cloudBase}/storage/v1/object/public/${CLOUD_BUCKET}/${encodeURIComponent(file)}`;
   const fromCloud = (row) => ({
     id: String(row.id),
