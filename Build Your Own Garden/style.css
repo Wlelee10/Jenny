@@ -625,7 +625,7 @@ body.is-falling .glass {
   background: transparent;
   color: #ffffff;
   font-family: inherit;
-  font-size: calc(var(--k) * 0.0085);
+  font-size: calc(var(--k) * 0.0072);
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
