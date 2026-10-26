@@ -249,19 +249,18 @@
   padding: 4px 0;
   border: 0;
   background: none;
-  color: var(--ink);
+  color: #9a9a9a;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.04em;
   cursor: pointer;
 
-  transition: opacity 600ms ease 420ms;
+  transition: opacity 600ms ease 420ms, color 180ms ease;
 }
 
+/* BACK TO CANVAS: 회색 → 올리면 글자와 괄호가 검정 */
 .back-button:hover {
-  opacity: 0.45;
-  transition-delay: 0s;
-  transition-duration: 180ms;
+  color: var(--ink);
 }
 
 .back-button:focus-visible {
@@ -393,9 +392,7 @@
   animation: title-caret-blink 1s steps(1) infinite;
 }
 
-.title-field.is-empty:not(:focus-within) .title-caret {
-  display: block;
-}
+/* 입력 중인 칸에만 진짜 커서가 깜빡임 (가짜 커서 줄은 쓰지 않음) */
 
 @keyframes title-caret-blink {
   50% { opacity: 0; }
@@ -403,7 +400,7 @@
 
 /* 만든 사람: 이름 칸 바로 아래 */
 .creator-field {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 /* 이름 없이 SAVE 를 누르면 살짝 흔들림 */
@@ -426,13 +423,20 @@
   }
 }
 
-/* 오른쪽 정보: 모두 같은 크기 (15px) — 숫자 칸은 오른쪽 정렬, 글자 칸은 왼쪽 정렬 */
+/* 오른쪽 정보: 이름 칸 12px / 시간 · 숫자 11px 굵게 — 숫자 칸은 오른쪽 정렬, 글자 칸은 왼쪽 정렬 */
 .result-info {
-  font-size: 15px;
+  font-size: 12px;
+}
+
+.result-time,
+.result-stats {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .result-time {
-  margin: 28px 0 0;
+  margin: 24px 0 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -466,24 +470,25 @@
 
 
 
+/* SAVE & SHARE: 회색 버튼 · 회색 글자 → 올리면 테두리가 검정 */
 .save-button {
-  margin-top: 26px;
-  padding: 7px 10px;
+  margin-top: 22px;
+  padding: 7px 16px;
 
-  border: 0;
-  border-radius: 4px;
-  background: #d4d4d4;
-  color: var(--ink);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: #d6d6d6;
+  color: #8a8a8a;
   font: inherit;
-  letter-spacing: inherit;
+  font-size: 10px;
+  letter-spacing: 0.04em;
   cursor: pointer;
 
-  transition: background-color 160ms ease, color 160ms ease;
+  transition: border-color 160ms ease, color 160ms ease;
 }
 
 .save-button:hover:not(:disabled) {
-  background: #111111;
-  color: #ffffff;
+  border-color: #111111;
 }
 
 .save-button:disabled {
