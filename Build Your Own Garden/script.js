@@ -273,7 +273,7 @@ const STRIDE = 11; // [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char, hand]
    여기저기 점이 잠깐씩 0 · 1 로 반짝임 */
 const IDLE_PERIOD = 7;      // 초. 한 번 떠올랐다 내려오는 시간
 const IDLE_FLICKER = 7;     // 1초에 0 · 1 로 반짝이는 점 수
-const GATE_EXIT_MS = 900;   // 시작을 누른 뒤: 글이 사라지고 손이 양쪽으로 들어가는 시간
+const GATE_EXIT_MS = 1500;  // 시작을 누른 뒤: 글이 사라지고 손이 양쪽으로 들어가는 시간 (그다음 영상 시작)
 
 function gateFrame(now, once) {
   const scene = gateScene;
@@ -534,14 +534,27 @@ async function playOpening() {
       // 아직 준비 중이면 처음부터 재생됨
     }
     try {
+      // 누른 순간 한 번 소리 없이(볼륨 0) 재생했다 멈춰서 브라우저가 소리 재생을 허락하게 해 둠
+      openingVideo.volume = 0;
       await openingVideo.play();
+      openingVideo.pause();
+      openingVideo.currentTime = 0;
+      openingVideo.volume = 1;
       started = true;
-      // 글은 사라지고 두 손은 양쪽으로 들어가며, 그 사이로 영상이 드러남
+      // 글은 사라지고 두 손은 양쪽으로 들어감 → 완전히 빈 흰 화면이 된 뒤 영상 시작
       opening.classList.add("is-entering");
       gateScene.exitAt = performance.now();
       gateScene.pointer = null;
       wakeGate();
-      setTimeout(hideGate, GATE_EXIT_MS);
+      setTimeout(async () => {
+        try {
+          await openingVideo.play();
+        } catch {
+          endOpening();
+          return;
+        }
+        hideGate();
+      }, GATE_EXIT_MS);
     } catch {
       openingVideo.pause();
       endOpening(); // 눌러도 재생할 수 없으면(파일 문제 등) 첫 페이지로
