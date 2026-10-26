@@ -280,8 +280,8 @@ body {
       rgba(255, 255, 255, 0.2) 100%);
   background-size: 180px 180px, 100% 100%;
 
-  -webkit-backdrop-filter: blur(9px) saturate(0.78) brightness(1.06);
-  backdrop-filter: blur(9px) saturate(0.78) brightness(1.06);
+  -webkit-backdrop-filter: blur(var(--frost-blur, 9px)) saturate(0.78) brightness(1.06);
+  backdrop-filter: blur(var(--frost-blur, 9px)) saturate(0.78) brightness(1.06);
 
   -webkit-mask-image: var(--hole-mask);
   mask-image: var(--hole-mask);
@@ -291,8 +291,8 @@ body {
 .glass-edge-blur {
   background: rgba(246, 246, 246, 0.1);
 
-  -webkit-backdrop-filter: blur(16px) saturate(0.75) brightness(1.03);
-  backdrop-filter: blur(16px) saturate(0.75) brightness(1.03);
+  -webkit-backdrop-filter: blur(var(--edge-blur, 16px)) saturate(0.75) brightness(1.03);
+  backdrop-filter: blur(var(--edge-blur, 16px)) saturate(0.75) brightness(1.03);
 
   -webkit-mask-image:
     var(--hole-mask),
@@ -567,11 +567,11 @@ body.is-assembling .start-button {
   opacity: 0;
 }
 
-/* 화면 가득 깔릴 때는 모서리 없는 사각형 → 글자 자리로 모이며 둥글어짐 (끝나면 애플 아이콘 모양 마스크로) */
+/* 화면 가득 깔릴 때는 살짝만 둥근 사각형 → 글자 자리로 모이며 둥글어짐 (끝나면 애플 아이콘 모양 마스크로) */
 body.is-assembling .garden-tile .tile-image {
   -webkit-mask: none;
   mask: none;
-  border-radius: 0;
+  border-radius: 7%;
 }
 
 body.is-assembling.is-gathering .garden-tile .tile-image {

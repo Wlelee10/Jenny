@@ -478,6 +478,13 @@ function fitGrid() {
   if (isFalling) return;
   const cell = Math.floor(Math.min(mosaic.clientWidth / COLUMNS, mosaic.clientHeight / ROWS) * 10) / 10;
   scene.style.setProperty("--cell", `${Math.max(cell, 4)}px`);
+
+  // 유리의 흐림도 칸 크기에 맞춰 줄임 (창이 작아져도 글자가 보이게) — 큰 화면(칸 37px 이상)에서는 그대로
+  // 크롬은 같은 값을 사파리보다 2.5~3배 강하게 흐리므로 1/3로 맞춤
+  const engine = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent) ? 1 : 0.34;
+  const ratio = Math.pow(clamp(cell / 37.5, 0.25, 1), 1.3) * engine;
+  document.documentElement.style.setProperty("--frost-blur", `${(9 * ratio).toFixed(2)}px`);
+  document.documentElement.style.setProperty("--edge-blur", `${(16 * ratio).toFixed(2)}px`);
 }
 
 fitGrid();
