@@ -1442,7 +1442,7 @@ function warmUpIntro() {
 
 /* =========================================
    ASSEMBLY (오프닝 영상의 흰 화면에서 첫 페이지로)
-   1. 흰 화면 위로 200장이 화면 가득 격자로 촤라락 깔림 (왼쪽 위 → 오른쪽 아래 물결)
+   1. 흰 화면 위로 200장이 화면 가득 격자로 촤라락 깔림 (가운데에서 네 모서리로 퍼지는 물결)
    2. 회색 판 · 유리 · 글자가 서서히 생기고, 동시에 이미지들이 BUILD YOUR OWN GARDEN 글자 자리로 이동
 ========================================= */
 
@@ -1496,7 +1496,10 @@ function assembleIntro() {
     return {
       tile,
       from: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${scale.toFixed(4)})`,
-      appear: ((col / cols + row / rows) / 2) * SPREAD_WAVE + Math.random() * 70,
+      // 가운데에서 시작해 네 모서리로 퍼짐 (가운데 0 → 모서리 1)
+      appear:
+        (Math.hypot((col + 0.5) / cols - 0.5, (row + 0.5) / rows - 0.5) / Math.SQRT1_2) * SPREAD_WAVE +
+        Math.random() * 70,
       distance: Math.hypot(x, y)
     };
   });
