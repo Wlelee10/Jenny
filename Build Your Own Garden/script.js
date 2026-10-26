@@ -3,6 +3,31 @@
    INTRO INTERACTION
 ========================================= */
 
+/* =========================================
+   IMAGE RETRY
+   이미지 하나가 일시적으로 못 받아지면(인터넷 순간 끊김 · 동시 요청이 많을 때)
+   깨진 아이콘을 보여주지 않고 잠시 뒤 다시 받음 (최대 4번)
+========================================= */
+
+document.addEventListener("error", (event) => {
+  const image = event.target;
+  if (!(image instanceof HTMLImageElement)) return;
+  const src = image.currentSrc || image.src;
+  if (!src || src.startsWith("data:") || src.startsWith("blob:")) return;
+  const tries = Number(image.dataset.retries || 0);
+  if (tries >= 4) return;
+  image.dataset.retries = String(tries + 1);
+  image.classList.add("is-retrying");
+  const base = src.replace(/([?&])retry=\d+$/, "").replace(/[?&]$/, "");
+  setTimeout(() => {
+    image.src = `${base}${base.includes("?") ? "&" : "?"}retry=${tries + 1}`;
+  }, 500 * 2 ** tries);
+}, true);
+
+document.addEventListener("load", (event) => {
+  if (event.target instanceof HTMLImageElement) event.target.classList.remove("is-retrying");
+}, true);
+
 const grid = document.querySelector("#gardenGrid");
 const mosaic = document.querySelector("#mosaicWindow");
 const scene = document.querySelector("#mosaicScene");

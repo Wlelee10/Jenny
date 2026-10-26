@@ -200,6 +200,8 @@
     if (event.pointerType === "touch") return;
     const button = event.target.closest?.(HOVER);
     if (!button || button.disabled || button.contains(event.relatedTarget)) return;
+    // 이미 열려 있는 탭(BUILD · AI LIBRARY · HUMAN GALLERY)은 소리 없음
+    if (button.matches(".folder-tab") && button.closest(".folder")?.classList.contains("is-active")) return;
     if (button.matches(".start-button")) sound.startHover();
     else sound.hover();
   });
@@ -209,6 +211,7 @@
     if (event.button !== 0) return;
     const button = event.target.closest?.(HOVER);
     if (!button || button.disabled || button.matches(".start-button")) return;
+    if (button.matches(".folder-tab") && button.closest(".folder")?.classList.contains("is-active")) return;
     sound.click();
   });
 })();

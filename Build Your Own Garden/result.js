@@ -271,7 +271,7 @@
     activeTab = "build";
     folders.forEach((folder) => folder.classList.toggle("is-active", folder.dataset.folder === "build"));
     stopGallery();
-    backButton.hidden = Boolean(savedEntry);
+    backButton.hidden = false;
 
     result.hidden = false;
     result.classList.remove("is-returning");
@@ -335,6 +335,10 @@
   ========================================= */
 
   backButton.addEventListener("click", () => {
+    if (savedEntry) {
+      buildAnother();
+      return;
+    }
     if (!finished || savedEntry || result.classList.contains("is-returning")) return;
 
     const quick = reduceMotion.matches;
@@ -382,6 +386,62 @@
   }
 
   new ResizeObserver(fitStage).observe(resultCanvas);
+
+  /* =========================================
+     BUILD ANOTHER GARDEN
+     저장한 뒤: 빈 캔버스의 빌더로 바로 돌아가 새 정원을 만듦 (조각은 라이브러리에 그대로)
+  ========================================= */
+
+  function buildAnother() {
+    if (!finished || result.classList.contains("is-returning")) return;
+    const builder = finished.builder;
+    const quick = reduceMotion.matches;
+
+    closeDialog();
+    if (!viewer.hidden) closeViewer();
+    stopGallery();
+
+    // 빌더를 빈 캔버스로 되돌려 보이게 하고, 결과 화면은 서서히 사라짐
+    clearTimeout(hideBuilderTimer);
+    document.dispatchEvent(new CustomEvent("garden:new"));
+    builder.hidden = false;
+    builder.classList.add("is-returning");
+    builder.offsetWidth;
+    builder.classList.remove("is-leaving");
+
+    result.classList.add("is-returning");
+    setTimeout(() => {
+      result.hidden = true;
+      result.classList.remove("is-returning");
+      builder.classList.remove("is-returning");
+      resetResult();
+    }, quick ? 0 : 650);
+  }
+
+  // 다음 정원을 위해 결과 화면을 처음 상태로
+  function resetResult() {
+    finished = null;
+    savedEntry = null;
+    savedBlob = null;
+    stageClone?.remove();
+    stageClone = null;
+    titleInput.value = "";
+    creatorInput.value = "";
+    titleInput.readOnly = false;
+    creatorInput.readOnly = false;
+    markTitle();
+    fitTitle();
+    saveButton.disabled = false;
+    saveButton.textContent = "SAVE & SHARE";
+    saveButton.classList.remove("is-saved");
+    saveNote.textContent = "";
+    backButton.textContent = "[ BACK TO CANVAS ]";
+    backButton.disabled = false;
+    backButton.hidden = false;
+    activeTab = "build";
+    folders.forEach((folder) => folder.classList.toggle("is-active", folder.dataset.folder === "build"));
+    galleryGrid.querySelectorAll(".card.is-mine").forEach((card) => card.classList.remove("is-mine"));
+  }
 
   /* =========================================
      FOLDER TABS
@@ -881,7 +941,10 @@
       titleInput.readOnly = true;
       creatorInput.readOnly = true;
       markTitle();
-      backButton.hidden = true;
+      // 저장 후: [ BACK TO CANVAS ] → [ BUILD ANOTHER GARDEN ]
+      backButton.textContent = "[ BUILD ANOTHER GARDEN ]";
+      backButton.hidden = false;
+      backButton.disabled = false;
       fitTitle();
       saveButton.textContent = "SAVED";
       saveButton.classList.add("is-saved");

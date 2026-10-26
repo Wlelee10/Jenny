@@ -22,6 +22,11 @@
    RESET
 ========================================= */
 
+/* 다시 받는 중인 이미지: 깨진 아이콘 대신 빈 자리 */
+img.is-retrying {
+  visibility: hidden;
+}
+
 * {
   box-sizing: border-box;
 }

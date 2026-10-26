@@ -356,7 +356,8 @@
   color: #a8a8a8;
 }
 
-.title-field input[readonly] {
+.title-field input[readonly],
+.title-field.is-empty input[readonly] {
   border-bottom-color: transparent;
   cursor: default;
 }
@@ -459,7 +460,7 @@
 }
 
 .result-stats dt {
-  text-align: right;
+  text-align: left;
 }
 
 /* 200 AI GARDENS · 1 GARDEN: 한 칸 띄우고 조금 크게 */

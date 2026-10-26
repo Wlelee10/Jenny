@@ -3070,6 +3070,34 @@
 
   // 결과 화면에서 [ BACK TO CANVAS ] → 하던 작업 그대로 다시 편집
   // 타이머는 멈춘 채로 있다가 새 조각을 가져오면 이어서 흐름
+  // BUILD ANOTHER GARDEN: 빈 캔버스 · 타이머 0 으로 처음부터 (조각은 라이브러리에 그대로)
+  document.addEventListener("garden:new", () => {
+    exitModes();
+    closePopovers();
+    items.length = 0;
+    groups.length = 0;
+    selection.clear();
+    itemElements.forEach((element) => element.remove());
+    itemElements.clear();
+    setBackground("#ffffff");
+    history.length = 0;
+    historyIndex = -1;
+    timerElapsed = 0;
+    timerRunningSince = null;
+    lastTimerText = "";
+    timerText.textContent = "00:00";
+    renderItems();
+    commit();
+
+    builder.classList.remove("is-finished");
+    active = true;
+    computeLayout();
+    applyLayout(true);
+    readCanvasRect();
+    renderLayers();
+    updateUI();
+  });
+
   document.addEventListener("garden:resume", () => {
     builder.classList.remove("is-finished");
     active = true;
