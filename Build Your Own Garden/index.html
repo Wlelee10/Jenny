@@ -14,8 +14,10 @@
 
   <!-- OPENING: 첫 화면 전에 자동 재생 (흰 화면으로 끝나면 인트로가 페이드인) -->
   <div class="opening is-framed" id="opening">
-    <video class="opening-video" id="openingVideo" muted autoplay playsinline webkit-playsinline preload="auto"
+    <video class="opening-video" id="openingVideo" playsinline webkit-playsinline preload="auto"
       src="opening.mp4"></video>
+    <!-- 소리 있는 자동 재생이 막힌 브라우저(사파리 등): 한 번 누르면 소리와 함께 시작 -->
+    <button class="opening-gate" id="openingGate" type="button" hidden><span>[ CLICK TO ENTER ]</span></button>
     <button class="opening-sound" id="openingSound" type="button" aria-pressed="true" hidden>[ SOUND ON ]</button>
     <div class="opening-controls">
       <button class="opening-skip" id="openingSkip" type="button">[ SKIP ]</button>

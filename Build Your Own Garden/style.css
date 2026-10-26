@@ -472,6 +472,43 @@ body.is-falling .glass {
      (사파리는 video에 mask를 걸면 영상을 그리지 않으므로 mask는 쓰지 않음) */
 }
 
+/* 입장: 흰 화면 전체를 누르면 시작 (가운데에 작은 글자) */
+.opening-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+
+  display: grid;
+  place-items: center;
+  padding: 0;
+
+  border: 0;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.opening-gate[hidden] {
+  display: none;
+}
+
+.opening-gate span {
+  animation: gate-breathe 2.4s ease-in-out infinite;
+}
+
+.opening-gate:hover span {
+  animation: none;
+  color: var(--red, #b3141e);
+}
+
+@keyframes gate-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
 /* 오른쪽 아래: [ SKIP ] / 왼쪽 아래: [ SOUND ON ] */
 .opening-sound {
   position: absolute;
@@ -484,7 +521,7 @@ body.is-falling .glass {
   position: absolute;
   right: 34px;
   bottom: 28px;
-  z-index: 1;
+  z-index: 3; /* 입장 화면 위에서도 SKIP 가능 */
 
   display: flex;
   gap: 8px;

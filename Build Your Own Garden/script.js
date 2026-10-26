@@ -27,6 +27,7 @@ const openingVideo = document.querySelector("#openingVideo");
 const openingSound = document.querySelector("#openingSound");
 const openingPlay = document.querySelector("#openingPlay");
 const openingSkip = document.querySelector("#openingSkip");
+const openingGate = document.querySelector("#openingGate");
 
 const ASSEMBLE_AT = (22 * 24 + 7) * 1001 / 24000; // 22초 07프레임 (23.976fps) ≈ 22.314초
 // 검색창 장면은 196번째 프레임(8.175초)에서 다음 장면으로 바뀜 — 그 프레임부터 화면 가득
@@ -167,51 +168,45 @@ async function playOpening() {
     paintSound();
   });
 
-  // 멈춰 있으면 다시 재생을 시도할 때들: 받아지는 대로 · 탭으로 돌아왔을 때
-  const retry = () => {
-    if (assemblyStarted || !openingVideo.paused || openingVideo.ended) return;
-    playMuted().catch(() => {});
+  // 소리와 함께 재생 시도 — 브라우저가 막으면(사파리 등) [ CLICK TO ENTER ]
+  // 한 번 누르면 그 순간 영상이 처음부터 소리와 함께 재생됨
+  const enter = () => {
+    if (!opening.classList.contains("is-gated")) return;
+    opening.classList.remove("is-gated");
+    openingGate.hidden = true;
+    openingSound.hidden = false;
+    openingVideo.muted = soundOffByUser;
+    try {
+      openingVideo.currentTime = 0;
+    } catch {
+      // 아직 준비 중이면 처음부터 재생됨
+    }
+    openingVideo.play().catch(() => {
+      // 클릭해도 재생할 수 없으면(파일 문제 등) 첫 페이지로
+      endOpening();
+    });
+    paintSound();
   };
-  ["loadedmetadata", "loadeddata", "canplay", "canplaythrough"].forEach((type) => {
-    openingVideo.addEventListener(type, retry);
-  });
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) retry();
-  });
-
-  // 브라우저가 소리를 막았던 경우: 화면을 처음 누르거나 키를 누르는 순간 소리를 켬 (직접 끈 경우는 제외)
-  const wake = (event) => {
-    if (!opening.isConnected || event.target.closest?.(".opening-sound, .opening-skip")) return;
-    if (openingVideo.muted && !soundOffByUser) setOpeningSound(true);
-    else retry();
-  };
-  ["pointerdown", "keydown", "touchstart"].forEach((type) => {
-    window.addEventListener(type, wake, { capture: true, passive: true });
+  openingGate.addEventListener("click", (event) => {
+    event.stopPropagation();
+    enter();
   });
 
   try {
-    // 먼저 소리와 함께 → 막히면 소리 없이 (SOUND OFF로 표시)
-    try {
-      openingVideo.muted = false;
-      openingVideo.removeAttribute("muted");
-      await openingVideo.play();
-    } catch {
-      await playMuted();
-    }
+    openingVideo.muted = false;
+    openingVideo.removeAttribute("muted");
+    await openingVideo.play();
     paintSound();
-  } catch {
-    // 아직 준비가 덜 됐을 수 있으니, 재생할 수 있게 되면 한 번 더 시도
-    try {
-      if (openingVideo.readyState < 3) {
-        await new Promise((resolve) => openingVideo.addEventListener("canplay", resolve, { once: true }));
-      }
-      await playMuted();
-    } catch {
-      // 거절돼도 곧바로 PLAY를 띄우지 않고, 잠시 뒤에도 멈춰 있을 때만 띄움
+  } catch (error) {
+    if (assemblyStarted) return;
+    if (error?.name === "NotAllowedError" || openingVideo.paused) {
+      openingVideo.pause();
+      opening.classList.add("is-gated");
+      openingGate.hidden = false;
+      openingSound.hidden = true;
     }
   }
 
-  setTimeout(showPlayIfStopped, 1500);
   requestAnimationFrame(watchOpening);
   watchFrames();
 }
