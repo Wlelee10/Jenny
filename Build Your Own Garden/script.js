@@ -445,7 +445,7 @@ async function playOpening() {
   for (let i = 0; i < RING; i++) {
     const span = document.createElement("span");
     const angle = (i / RING) * 360;
-    span.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(calc(var(--k) * -0.014)) rotate(${-angle}deg)`;
+    span.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(calc(var(--k) * -0.0108)) rotate(${-angle}deg)`;
     span.textContent = Math.random() < 0.5 ? "0" : "1";
     loaderRing?.appendChild(span);
     ringChars.push(span);

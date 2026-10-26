@@ -578,8 +578,8 @@ body.is-falling .glass {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--k) * 0.034);
-  height: calc(var(--k) * 0.034);
+  width: calc(var(--k) * 0.026);
+  height: calc(var(--k) * 0.026);
   transform: translate(-50%, -50%);
 
   opacity: 0;
@@ -598,7 +598,7 @@ body.is-falling .glass {
   left: 50%;
   top: 50%;
   font-family: "Courier New", Courier, monospace;
-  font-size: calc(var(--k) * 0.0058);
+  font-size: calc(var(--k) * 0.0048);
   font-weight: 700;
   line-height: 1;
   color: #d4d4d4;
