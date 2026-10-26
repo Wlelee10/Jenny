@@ -9,6 +9,6 @@
 ========================================= */
 
 window.GARDEN_CLOUD = {
-  url: "",
-  key: ""
+  url: "https://seczmaafduyenljspnrc.supabase.co",
+  key: "sb_publishable_duJbG1lepSy5dIWHhxqI2w_mnvKxPv9"
 };
