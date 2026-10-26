@@ -217,7 +217,7 @@ function drawGateArt() {
     const glow = 0.006 * k;
     area = { l: rect.left - glow, r: rect.right + glow, t: rect.top - glow, b: rect.bottom + glow };
   }
-  const FADE = 0.054 * k; // 이 거리만큼 멀어지면 완전히 진해짐 (빛 여유 포함 손 크기의 6%)
+  const FADE = 0.038 * k; // 이 거리만큼 멀어지면 완전히 진해짐 (빛 여유 포함 손 크기의 4.4%)
 
   // 왼손: 손끝이 가운데에서 0.092k 왼쪽, 세로 중심은 글보다 살짝 위
   // 오른손: 손끝이 가운데에서 0.066k 오른쪽, 세로 중심은 글보다 0.113k 아래
