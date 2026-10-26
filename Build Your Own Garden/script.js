@@ -29,6 +29,17 @@ const openingPlay = document.querySelector("#openingPlay");
 const openingSkip = document.querySelector("#openingSkip");
 
 const ASSEMBLE_AT = (22 * 24 + 7) * 1001 / 24000; // 22초 07프레임 (23.976fps) ≈ 22.314초
+// 검색창 장면은 196번째 프레임(8.175초)에서 다음 장면으로 바뀜 — 그 프레임부터 화면 가득
+const FRAMED_UNTIL = (196 - 0.5) * 1001 / 24000;
+
+// 검색창 장면: 영상 속 마우스(1920px 영상에서 높이 약 85px)가 실제 마우스 크기(약 30px)가 되도록 0.36배
+// 화면이 좁으면 검색창(영상에서 폭 1456px)이 화면 안에 들어오도록 더 작게
+function fitFramedVideo() {
+  const scale = Math.min(0.36, (window.innerWidth * 0.92) / 1456);
+  opening?.style.setProperty("--video-scale", scale.toFixed(4));
+}
+fitFramedVideo();
+window.addEventListener("resize", fitFramedVideo);
 let assemblyStarted = false;
 
 // 흰 화면이 시작되는 순간: 영상은 숨기고 BGM은 그대로 흐르게 둔 채 첫 페이지를 만들기 시작
@@ -52,7 +63,26 @@ function endOpening() {
   if (!openingVideo || openingVideo.paused || openingVideo.ended) opening?.remove();
 }
 
-// 영상 시간이 22초 07프레임에 닿는 순간을 프레임 단위로 지켜봄
+// 검색창 장면 → 화면 가득: 화면에 실제로 그려지는 영상 프레임의 시간으로 판단 (프레임 정확)
+function watchFrames() {
+  if (!openingVideo || !opening?.isConnected) return;
+  const framed = (time) => opening.classList.toggle("is-framed", time < FRAMED_UNTIL);
+  if ("requestVideoFrameCallback" in openingVideo) {
+    const onFrame = (_, meta) => {
+      framed(meta.mediaTime);
+      if (opening.isConnected && !assemblyStarted) openingVideo.requestVideoFrameCallback(onFrame);
+    };
+    openingVideo.requestVideoFrameCallback(onFrame);
+  } else {
+    const tick = () => {
+      framed(openingVideo.currentTime);
+      if (opening.isConnected && !assemblyStarted) requestAnimationFrame(tick);
+    };
+    tick();
+  }
+}
+
+// 영상 시간이 22초 07프레임(첫 페이지 만들기)에 닿는 순간을 지켜봄
 function watchOpening() {
   if (assemblyStarted || !openingVideo) return;
   if (openingVideo.currentTime >= ASSEMBLE_AT - 0.01) {
@@ -102,15 +132,15 @@ async function playOpening() {
   openingVideo.addEventListener("error", endOpening);
   opening.addEventListener("click", unmuteOpening);
 
-  // [ SKIP ] → 영상의 흰 화면(BGM) 부분으로 건너뛰고 바로 첫 페이지 만들기 시작
+  // [ SKIP ] → 영상 · 소리 없이 바로 완성된 첫 페이지 (START를 바로 누를 수 있음)
   openingSkip?.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (!openingVideo.paused && openingVideo.duration > ASSEMBLE_AT) {
-      openingVideo.currentTime = ASSEMBLE_AT;
-      beginAssembly();
-    } else {
-      endOpening();
-    }
+    if (assemblyStarted) return;
+    assemblyStarted = true;
+    openingVideo.pause();
+    opening.remove();
+    document.body.classList.add("is-skipped");
+    document.body.classList.remove("is-opening");
   });
 
   // 실제로 재생되기 시작하면: PLAY는 숨기고, 소리가 꺼져 있으면 SOUND ON
@@ -144,6 +174,7 @@ async function playOpening() {
 
   setTimeout(showPlayIfStopped, 1500);
   requestAnimationFrame(watchOpening);
+  watchFrames();
 }
 
 playOpening();
