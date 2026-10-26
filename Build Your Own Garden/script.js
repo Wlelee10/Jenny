@@ -198,12 +198,13 @@ async function playOpening() {
        1. 영상 앞부분(바로 재생할 만큼)
        2. 인트로 이미지 200장 + 조각 이미지 200장 (받고 미리 풀어 둠)
        3. 인트로 유리 효과를 화면 뒤에서 미리 한 번 그려 봄 (사파리의 첫 호버가 느린 것 방지)
-     → 소리 있는 자동 재생이 되는 브라우저는 바로 시작, 아니면 [ CLICK TO ENTER ] (누르면 즉시 시작) */
+     → 그동안 소개글을 읽음. 다 되면 [ Click to show your creativity ] — 누르면 영상이 소리와 함께 바로 시작
+     (자동 재생이 되는 브라우저도 글을 읽을 수 있도록 항상 눌러서 시작) */
 
-  const gateLabel = document.querySelector("#openingGateLabel");
   const openingLoader = document.querySelector("#openingLoader");
+  const openingEnter = document.querySelector("#openingEnter");
   const READY_AHEAD = 2.5;
-  const PREPARE_LIMIT = 20000; // 아주 느린 연결이어도 20초 뒤에는 시작할 수 있게
+  const PREPARE_LIMIT = 30000; // 아주 느린 연결이어도 30초 뒤에는 시작할 수 있게
   const preparedAt = performance.now();
   let suspended = false;  // 브라우저가 충분히 받았다고 보고 잠시 멈춤
   let waiting = true;     // 재생 중 받는 것을 기다리는지
@@ -224,9 +225,8 @@ async function playOpening() {
 
   const showEnter = () => {
     gateReady = true;
-    if (gateLabel) gateLabel.textContent = "[ CLICK TO ENTER ]";
-    openingGate.classList.add("is-ready");
-    openingGate.setAttribute("aria-label", "Click to enter");
+    openingLoader.classList.remove("is-visible");
+    openingEnter.hidden = false;
   };
 
   // 처음부터 재생 (gesture: 사용자가 누른 순간인지)
@@ -244,14 +244,17 @@ async function playOpening() {
       hideGate();
     } catch {
       openingVideo.pause();
-      if (gesture) endOpening();  // 눌러도 재생할 수 없으면(파일 문제 등) 첫 페이지로
-      else showEnter();           // 소리 있는 자동 재생이 막힘 → 클릭해서 시작
+      endOpening(); // 눌러도 재생할 수 없으면(파일 문제 등) 첫 페이지로
     }
   };
 
-  openingGate.addEventListener("click", (event) => {
+  openingEnter.addEventListener("click", (event) => {
     event.stopPropagation();
     if (gateReady) startVideo(true);
+  });
+  // 준비된 뒤에는 Enter 키로도 시작
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && gateReady && !started && opening.isConnected && !assemblyStarted) startVideo(true);
   });
 
   const videoProgress = () => {
@@ -291,13 +294,7 @@ async function playOpening() {
     const progress = video * 0.4 + images * 0.5 + (warm === "done" ? 0.1 : 0);
     openingLoader.style.setProperty("--progress", progress.toFixed(3));
 
-    if (!started && !gateReady && ((video >= 1 && images >= 1 && warm === "done") || timedOut)) {
-      gateReady = "trying";
-      startVideo(false);
-    }
-
-    const gated = opening.classList.contains("is-gated");
-    openingLoader.classList.toggle("is-visible", gated ? gateReady !== true : started && waiting);
+    if (!started && !gateReady && ((video >= 1 && images >= 1 && warm === "done") || timedOut)) showEnter();
   };
 
   ["progress", "loadedmetadata", "loadeddata", "canplay", "canplaythrough"].forEach((type) => {

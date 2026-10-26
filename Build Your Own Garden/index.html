@@ -17,9 +17,21 @@
     <video class="opening-video" id="openingVideo" playsinline webkit-playsinline preload="auto"
       src="opening.mp4"></video>
     <!-- 소리 있는 자동 재생이 막힌 브라우저(사파리 등): 한 번 누르면 소리와 함께 시작 -->
-    <button class="opening-gate" id="openingGate" type="button"><span id="openingGateLabel">LOADING</span></button>
-    <!-- 영상이 받아지는 만큼 차오르는 얇은 선 -->
-    <div class="opening-loader" id="openingLoader" aria-hidden="true"><i></i></div>
+    <!-- 시작 전 소개글: 읽는 동안 영상 · 이미지를 준비하고, 다 되면 시작 버튼이 나타남 -->
+    <div class="opening-gate" id="openingGate">
+      <div class="gate-copy">
+        <p class="gate-title">What is AI to you?</p>
+        <p class="gate-text">It can generate countless possibilities in a very short time.<br>
+          But what you choose, what you discard, and how you combine them is still up to you.</p>
+        <p class="gate-text">Here, you will find countless gardens created by AI.<br>
+          Choose what speaks to you, and decide how you will cultivate a garden of your own.</p>
+        <div class="gate-foot">
+          <!-- 준비되는 만큼 차오르는 얇은 선 -->
+          <div class="opening-loader is-visible" id="openingLoader" aria-hidden="true"><i></i></div>
+          <button class="gate-enter" id="openingEnter" type="button" hidden>[ Click to show your creativity ]</button>
+        </div>
+      </div>
+    </div>
     <button class="opening-sound" id="openingSound" type="button" aria-pressed="true" hidden>[ SOUND ON ]</button>
     <div class="opening-controls">
       <button class="opening-skip" id="openingSkip" type="button">[ SKIP ]</button>

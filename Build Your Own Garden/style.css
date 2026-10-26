@@ -477,7 +477,7 @@ body.is-falling .glass {
      (사파리는 video에 mask를 걸면 영상을 그리지 않으므로 mask는 쓰지 않음) */
 }
 
-/* 입장: 흰 화면 전체를 누르면 시작 (가운데에 작은 글자) */
+/* 시작 전 소개글 (흰 화면 가운데): 한 줄씩 천천히 나타나고, 준비되면 시작 버튼 */
 .opening-gate {
   position: absolute;
   inset: 0;
@@ -485,64 +485,66 @@ body.is-falling .glass {
 
   display: grid;
   place-items: center;
-  padding: 0;
+  padding: 32px 24px;
 
-  border: 0;
   background: #ffffff;
   color: var(--ink);
-  font-family: inherit;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  cursor: pointer;
 }
 
 .opening-gate[hidden] {
   display: none;
 }
 
-/* 받는 중: LOADING (누를 수 없음) → 다 되면 [ CLICK TO ENTER ] */
-.opening-gate {
-  cursor: default;
+.gate-copy {
+  width: min(660px, 100%);
 }
 
-.opening-gate span {
-  color: #9a9a9a;
-  letter-spacing: 0.12em;
-  animation: gate-breathe 1.6s ease-in-out infinite;
+.gate-copy > * {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: gate-in 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.opening-gate.is-ready {
-  cursor: pointer;
+.gate-copy > :nth-child(1) { animation-delay: 200ms; }
+.gate-copy > :nth-child(2) { animation-delay: 1100ms; }
+.gate-copy > :nth-child(3) { animation-delay: 2600ms; }
+.gate-copy > :nth-child(4) { animation-delay: 3800ms; }
+
+@keyframes gate-in {
+  to { opacity: 1; transform: none; }
 }
 
-.opening-gate.is-ready span {
-  color: var(--ink);
-  letter-spacing: 0.04em;
-  animation: gate-breathe 2.4s ease-in-out infinite;
+.gate-title {
+  margin: 0 0 22px;
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
-.opening-gate.is-ready:hover span {
-  animation: none;
-  color: var(--red, #b3141e);
+.gate-text {
+  margin: 0 0 16px;
+  color: #3a3a3a;
+  font-size: clamp(14px, 1.15vw, 16px);
+  line-height: 1.7;
 }
 
-@keyframes gate-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+/* 준비 중: 얇은 선 → 다 되면 그 자리에 시작 버튼 */
+.gate-foot {
+  position: relative;
+  height: 24px;
+  margin-top: 30px;
 }
 
-/* 로딩: 가운데 아래의 1px 선이 받아진 만큼 차오름 (다 받아지면 사라짐) */
 .opening-loader {
   --progress: 0;
 
   position: absolute;
-  left: 50%;
-  top: calc(50% + 26px);
-  z-index: 3;
+  left: 0;
+  top: 50%;
 
-  width: 96px;
+  width: 120px;
   height: 1px;
-  margin-left: -48px;
 
   background: rgba(0, 0, 0, 0.08);
   opacity: 0;
@@ -561,6 +563,34 @@ body.is-falling .glass {
 
 .opening-loader.is-visible {
   opacity: 1;
+}
+
+.gate-enter {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--red, #b3141e);
+  font-family: inherit;
+  font-size: clamp(14px, 1.15vw, 16px);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+
+  animation: gate-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: opacity 180ms ease;
+}
+
+.gate-enter[hidden] {
+  display: none;
+}
+
+.gate-enter:hover {
+  opacity: 0.5;
 }
 
 /* 오른쪽 아래: [ SKIP ] / 왼쪽 아래: [ SOUND ON ] */
