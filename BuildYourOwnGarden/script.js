@@ -194,7 +194,10 @@ const gateScene = {
   dots: null,              // Float32Array [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char] × n
   pointer: null,           // 마우스 위치
   exitAt: 0,               // 시작 버튼을 누른 시각 (손이 양쪽으로 들어감)
-  ripples: [],             // 손을 클릭한 곳에서 퍼지는 물결 [{ x, y, at }]
+  ripples: [],             // 손을 클릭한 곳에서 퍼지는 물결 [{ x, y, hand, at }]
+  trail: [],               // 손 밖에서 마우스가 지나간 자리의 0 · 1 [{ x, y, char, at, size }]
+  trailFrom: null,         // 마지막으로 0 · 1 을 남긴 위치
+  press: null,             // 빈 곳을 누르고 있는 위치 (누르는 동안 0 · 1 이 쌓임)
   drift: [{ x: 0, y: 0 }, { x: 0, y: 0 }], // 지금 프레임의 손 위치 이동 (클릭 판정용)
   last: 0,
   running: false
@@ -278,7 +281,13 @@ const IDLE_FLICKER = 7;     // 1초에 0 · 1 로 반짝이는 점 수
 const GATE_EXIT_MS = 1500;  // 시작을 누른 뒤: 글이 사라지고 손이 양쪽으로 들어가는 시간 (그다음 영상 시작)
 const RIPPLE_RADIUS = 0.05; // 클릭 물결이 닿는 반경 (손 크기 k의 몇 배) — 클릭한 손 안에서만
 const RIPPLE_SPEED = 0.1;   // 클릭 물결이 퍼지는 속도 (1초에 손 크기 k의 몇 배)
-const RIPPLE_LIFE_MS = (RIPPLE_RADIUS / RIPPLE_SPEED) * 1000; // 반경 끝에 닿으면 사라짐
+const TRAIL_LIFE_MS = 900;  // 마우스 궤적의 0 · 1 이 사라지기까지
+const PRESS_LIFE = 2.6;     // 빈 곳을 눌렀을 때 그 둘레 0 · 1 은 평소의 몇 배 오래 남는지
+const PRESS_RADIUS = 0.028; // 누른 곳 둘레 (손 크기 k의 몇 배)
+const PRESS_RATE = 45;      // 누르고 있는 동안 1초에 생기는 0 · 1 수
+const TRAIL_GAP = 0.005;    // 0 · 1 을 남기는 간격 (손 크기 k의 몇 배)
+// 0 · 1 마다 사라지는 시간이 달라서, 마우스에서 멀어질수록(오래된 것일수록) 듬성듬성해짐
+const RIPPLE_LIFE_MS =(RIPPLE_RADIUS / RIPPLE_SPEED) * 1000; // 반경 끝에 닿으면 사라짐
 
 function gateFrame(now, once) {
   const scene = gateScene;
@@ -417,6 +426,32 @@ function gateFrame(now, once) {
       context.fillText(dots[i + 9] ? "1" : "0", x, y);
     }
   }
+
+  // 마우스 궤적의 0 · 1: 빨갛게 나타났다가 살짝 떠오르며 사라짐
+  // 빈 곳을 누르고 있는 동안: 그 둘레에 오래 남는 0 · 1 이 계속 생겨 쌓임
+  if (scene.press && !once && !scene.exitAt) {
+    scene.pressSpawn = (scene.pressSpawn || 0) + PRESS_RATE * dt;
+    while (scene.pressSpawn >= 1) {
+      scene.pressSpawn -= 1;
+      spawnPressBit(scene.press.x, scene.press.y, now);
+    }
+  }
+
+  scene.trail = scene.trail.filter((bit) => now - bit.at < bit.life);
+  context.fillStyle = "#b3141e";
+  const quiet = scene.trail.length ? trailQuietZone() : null;
+  for (const bit of scene.trail) {
+    const t = (now - bit.at) / bit.life;
+    const appear = Math.min(1, (now - bit.at) / 80);
+    const age = (now - bit.at) / TRAIL_LIFE_MS;
+    // 오래될수록 바깥으로 살짝 흩어지며 떠오름
+    const x = bit.x + bit.sx * age;
+    const y = bit.y + bit.sy * age - age * bit.rise;
+    if (inZone(quiet, x, y, bit.size / 2)) continue; // 버튼 · 글로우 위로는 흘러가도 안 보임
+    context.globalAlpha = appear * (1 - t) * (1 - t);
+    context.font = `700 ${bit.size.toFixed(1)}px "Courier New", Courier, monospace`;
+    context.fillText(bit.char, x, y);
+  }
   context.globalAlpha = 1;
 
   // 움직임이 남아 있으면 계속, 다 멈추면 쉼
@@ -437,6 +472,44 @@ function wakeGate() {
 }
 
 const gateLayer = document.querySelector("#openingGate");
+// 마우스 궤적 0 · 1 이 안 나타나는 곳: 시작 버튼(준비 중엔 로딩 원) + 둘레의 글로우 빛
+function trailQuietZone() {
+  const button = document.querySelector("#openingEnter");
+  const target = button && !button.hidden ? button : document.querySelector("#openingLoader");
+  if (!target) return null;
+  const rect = target.getBoundingClientRect();
+  if (!rect.width) return null;
+  const glow = 0.022 * gateScene.k; // .gate-halo 가 버튼 밖으로 번지는 만큼 (style.css)
+  return { l: rect.left - glow, r: rect.right + glow, t: rect.top - glow, b: rect.bottom + glow };
+}
+
+function inZone(zone, x, y, pad = 0) {
+  return !!zone && x > zone.l - pad && x < zone.r + pad && y > zone.t - pad && y < zone.b + pad;
+}
+
+// 누른 곳 둘레에 오래 남는 0 · 1 하나 (가운데일수록 많이)
+function spawnPressBit(cx, cy, now) {
+  const k = gateScene.k;
+  const angle = Math.random() * Math.PI * 2;
+  const dist = Math.random() * Math.random() * PRESS_RADIUS * k;
+  const x = cx + Math.cos(angle) * dist;
+  const y = cy + Math.sin(angle) * dist;
+  const size = (0.003 + Math.random() * 0.007) * k;
+  if (inZone(trailQuietZone(), x, y, size / 2)) return;
+  gateScene.trail.push({
+    x,
+    y,
+    sx: Math.cos(angle) * 0.003 * k, // 아주 조금만 퍼짐 → 그 자리에 쌓임
+    sy: Math.sin(angle) * 0.003 * k,
+    char: Math.random() < 0.5 ? "0" : "1",
+    size,
+    rise: 0.002 * k,
+    life: TRAIL_LIFE_MS * PRESS_LIFE * (0.6 + 0.4 * Math.random()),
+    at: now
+  });
+  if (gateScene.trail.length > 400) gateScene.trail.splice(0, gateScene.trail.length - 400);
+}
+
 // 이 위치가 어느 손(점) 위인지: 0 왼손, 1 오른손, -1 손 밖
 function handAt(x, y) {
   const scene = gateScene;
@@ -453,12 +526,56 @@ function handAt(x, y) {
 
 gateLayer?.addEventListener("pointermove", (event) => {
   if (event.pointerType === "touch") return;
-  gateScene.pointer = { x: event.clientX, y: event.clientY };
-  gateLayer.classList.toggle("is-over-hand", !event.target.closest("button") && handAt(event.clientX, event.clientY) >= 0);
+  const x = event.clientX;
+  const y = event.clientY;
+  gateScene.pointer = { x, y };
+  const onButton = !!event.target.closest("button");
+  const overHand = !onButton && handAt(x, y) >= 0;
+  gateLayer.classList.toggle("is-over-hand", overHand);
+  // 누른 채로 움직이면 쌓이는 곳도 따라감 (손 · 버튼 위로 가면 멈춤)
+  if (gateScene.press) gateScene.press = overHand || onButton ? null : { x, y };
+  // 손이 없는 곳: 지나간 길을 따라 일정 간격으로 0 · 1 을 남김
+  if (overHand || onButton || !gateScene.ready || gateScene.exitAt) {
+    gateScene.trailFrom = null;
+  } else {
+    const k = gateScene.k;
+    const gap = TRAIL_GAP * k;
+    const from = gateScene.trailFrom || { x, y };
+    const dist = Math.hypot(x - from.x, y - from.y);
+    if (!gateScene.trailFrom || dist >= gap) {
+      const steps = Math.max(1, Math.min(14, Math.floor(dist / gap)));
+      const quiet = trailQuietZone();
+      for (let s = 1; s <= steps; s++) {
+        const p = gateScene.trailFrom ? s / steps : 1;
+        const angle = Math.random() * Math.PI * 2;
+        const spread = (0.004 + Math.random() * 0.012) * k;
+        const bx = from.x + (x - from.x) * p + (Math.random() - 0.5) * 0.004 * k;
+        const by = from.y + (y - from.y) * p + (Math.random() - 0.5) * 0.004 * k;
+        // 크기는 무작위 (가장 큰 것 = 0.01k)
+        const size = (0.003 + Math.random() * 0.007) * k;
+        if (inZone(quiet, bx, by, size / 2)) continue;
+        gateScene.trail.push({
+          x: bx,
+          y: by,
+          sx: Math.cos(angle) * spread,
+          sy: Math.sin(angle) * spread,
+          char: Math.random() < 0.5 ? "0" : "1",
+          size,
+          rise: 0.01 * k,
+          life: TRAIL_LIFE_MS * (0.25 + 0.75 * Math.random()),
+          at: performance.now()
+        });
+      }
+      if (gateScene.trail.length > 400) gateScene.trail.splice(0, gateScene.trail.length - 400);
+      gateScene.trailFrom = { x, y };
+    }
+  }
   wakeGate();
 });
 gateLayer?.addEventListener("pointerleave", () => {
   gateScene.pointer = null;
+  gateScene.trailFrom = null;
+  gateScene.press = null;
   gateLayer.classList.remove("is-over-hand");
   wakeGate();
 });
@@ -466,13 +583,32 @@ gateLayer?.addEventListener("pointerleave", () => {
 gateLayer?.addEventListener("pointerdown", (event) => {
   if (event.target.closest("button")) return;
   const hand = handAt(event.clientX, event.clientY);
-  if (hand < 0) return;
+  if (hand < 0) {
+    // 빈 곳: 둘레에 이미 있는 0 · 1 은 조금 더 오래 남고, 누르는 동안 새로 쌓임
+    if (!gateScene.ready || gateScene.exitAt) return;
+    const x = event.clientX;
+    const y = event.clientY;
+    const now = performance.now();
+    const reach = PRESS_RADIUS * gateScene.k * 1.5;
+    for (const bit of gateScene.trail) {
+      if (Math.hypot(bit.x - x, bit.y - y) < reach) bit.life += TRAIL_LIFE_MS * (PRESS_LIFE - 1);
+    }
+    for (let i = 0; i < 10; i++) spawnPressBit(x, y, now);
+    gateScene.press = { x, y };
+    gateScene.pressSpawn = 0;
+    wakeGate();
+    return;
+  }
   // 손이 숨 쉬며 움직여도 같은 자리에서 퍼지도록, 손 기준 좌표로 저장
   const sway = gateScene.drift[hand];
   gateScene.ripples.push({ x: event.clientX - sway.x, y: event.clientY - sway.y, hand, at: performance.now() });
   if (gateScene.ripples.length > 4) gateScene.ripples.shift();
   wakeGate();
 });
+// 손을 떼면 쌓이기 멈춤 (이미 쌓인 0 · 1 은 천천히 사라짐)
+for (const type of ["pointerup", "pointercancel"]) {
+  window.addEventListener(type, () => { gateScene.press = null; });
+}
 
 if (gateArt) {
   window.addEventListener("resize", drawGateArt);
