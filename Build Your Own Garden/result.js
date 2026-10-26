@@ -14,6 +14,8 @@
   const resultCanvas = $("#resultCanvas");
   const titleInput = $("#gardenTitle");
   const titleField = $("#titleField");
+  const creatorInput = $("#gardenCreator");
+  const creatorField = $("#creatorField");
   const resultTime = $("#resultTime");
   const resultTotal = $("#resultTotal");
   const resultSelected = $("#resultSelected");
@@ -83,6 +85,7 @@
   const fromCloud = (row) => ({
     id: String(row.id),
     title: row.title,
+    creator: row.creator || "",
     fragments: row.fragments,
     seconds: row.seconds,
     image: cloudImage(row.image),
@@ -130,21 +133,16 @@
 
     async list() {
       if ((await this.detect()) === "cloud") {
-        const columns = "id,title,fragments,seconds,image,created_at";
-        const load = (select) => fetch(
-          `${cloudBase}/rest/v1/gardens?select=${select}&order=created_at.asc`,
+        // 있는 칸은 모두 (likes · creator 칸이 아직 없는 서버여도 그대로 동작)
+        const response = await fetch(
+          `${cloudBase}/rest/v1/gardens?select=*&order=created_at.asc`,
           { headers: cloudHeaders(), cache: "no-store" }
         );
-        // likes 칸이 아직 없으면(설정 전) 예전처럼 불러오고 좋아요는 이 브라우저에서만
-        let response = this.likesShared === false ? null : await load(`${columns},likes`);
-        if (response && response.ok) {
-          this.likesShared = true;
-        } else {
-          if (response) this.likesShared = false;
-          response = await load(columns);
-        }
         if (!response.ok) throw new Error("Could not load the gallery.");
-        return (await response.json()).map(fromCloud);
+        const rows = await response.json();
+        if (rows.length) this.likesShared = "likes" in rows[0];
+        else this.likesShared ??= true;
+        return rows.map(fromCloud);
       }
       if (this.mode === "server") {
         const response = await fetch("api/gardens", { cache: "no-store" });
@@ -184,19 +182,27 @@
         if (!upload.ok) throw new Error("The garden image could not be uploaded.");
 
         // 2. 목록에 한 줄 추가
-        const insert = await fetch(`${cloudBase}/rest/v1/gardens`, {
+        const row = {
+          title: entry.title,
+          fragments: entry.fragments,
+          seconds: entry.seconds,
+          image: file
+        };
+        if (entry.creator) row.creator = entry.creator;
+        const send = (body) => fetch(`${cloudBase}/rest/v1/gardens`, {
           method: "POST",
           headers: cloudHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
-          body: JSON.stringify({
-            title: entry.title,
-            fragments: entry.fragments,
-            seconds: entry.seconds,
-            image: file
-          })
+          body: JSON.stringify(body)
         });
+        let insert = await send(row);
+        // 서버에 creator 칸이 아직 없으면 이름 없이라도 저장
+        if (!insert.ok && row.creator) {
+          delete row.creator;
+          insert = await send(row);
+        }
         if (!insert.ok) throw new Error("The garden could not be saved.");
-        const [row] = await insert.json();
-        return fromCloud(row);
+        const [saved] = await insert.json();
+        return fromCloud(saved);
       }
 
       if (this.mode === "server") {
@@ -288,12 +294,12 @@
     clearTimeout(arriveTimer);
     arriveTimer = setTimeout(() => result.classList.remove("is-arriving"), quick ? 0 : 1300);
 
-    // 화면이 다 나타나면 이름 칸에 바로 커서가 깜빡이며 입력 대기
+    // FINISH 누르자마자 이름 칸에 커서가 깜빡이며 입력 대기
     clearTimeout(titleFocusTimer);
     titleFocusTimer = setTimeout(() => {
       if (savedEntry || result.hidden || activeTab !== "build") return;
       titleInput.focus({ preventScroll: true });
-    }, quick ? 0 : 1100);
+    }, 0);
 
     // 캔버스: 빌더 자리 → 폴더 속 자리 (FLIP)
     flyCanvas(sourceRect, targetRect, false);
@@ -590,7 +596,12 @@
         src: entry.image,
         alt: entry.title,
         lazy: false,
-        lines: [entry.title, `${entry.fragments} /200 fragments`, formatTime(entry.seconds)]
+        lines: [
+          entry.title,
+          ...(entry.creator ? [`by ${entry.creator}`] : []),
+          `${entry.fragments} /200 fragments`,
+          formatTime(entry.seconds)
+        ]
       });
       card.querySelector("figcaption").appendChild(makeLikeButton(entry.id));
       if (savedEntry && entry.id === savedEntry.id) card.classList.add("is-mine");
@@ -775,17 +786,23 @@
   // 입력한 글자 길이에 맞춰 괄호가 따라오도록
   const measure = document.createElement("canvas").getContext("2d");
 
-  function fitTitle() {
-    const style = getComputedStyle(titleInput);
+  function fitField(input) {
+    const style = getComputedStyle(input);
     measure.font = `${style.fontSize} ${style.fontFamily}`;
-    const text = titleInput.value || titleInput.placeholder;
+    const text = input.value || input.placeholder;
     const spacing = parseFloat(style.letterSpacing) || 0;
     const width = measure.measureText(text).width + spacing * text.length + 4;
-    titleInput.style.width = `${Math.ceil(width)}px`;
+    input.style.width = `${Math.ceil(width)}px`;
   }
+
+  const fitTitle = () => {
+    fitField(titleInput);
+    fitField(creatorInput);
+  };
 
   function markTitle() {
     titleField.classList.toggle("is-empty", !titleInput.value.trim());
+    creatorField.classList.toggle("is-empty", !creatorInput.value.trim());
   }
 
   titleInput.addEventListener("input", () => {
@@ -793,9 +810,17 @@
     markTitle();
     if (titleInput.value.trim() && !savedEntry) saveNote.textContent = "";
   });
+  creatorInput.addEventListener("input", () => {
+    fitTitle();
+    markTitle();
+  });
   titleField.addEventListener("animationend", () => titleField.classList.remove("is-nudged"));
+  // 이름에서 Enter → 만든 사람 칸으로, 만든 사람에서 Enter → 입력 끝
   titleInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") titleInput.blur();
+    if (event.key === "Enter") creatorInput.focus();
+  });
+  creatorInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") creatorInput.blur();
   });
   fitTitle();
 
@@ -839,12 +864,14 @@
 
       savedEntry = await store.save({
         title: gardenTitle(),
+        creator: creatorInput.value.trim(),
         fragments: finished.fragments,
         seconds: finished.seconds
       }, board);
 
       titleInput.value = savedEntry.title;
       titleInput.readOnly = true;
+      creatorInput.readOnly = true;
       markTitle();
       backButton.hidden = true;
       fitTitle();

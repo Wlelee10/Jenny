@@ -53,3 +53,7 @@ $$;
 
 revoke all on function public.like_garden(uuid, int) from public;
 grant execute on function public.like_garden(uuid, int) to anon, authenticated;
+
+-- 4. 만든 사람 이름 (CREATED BY, 비워 둘 수 있음)
+alter table public.gardens
+  add column if not exists creator text check (creator is null or char_length(creator) between 1 and 40);

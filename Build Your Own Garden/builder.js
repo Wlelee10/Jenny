@@ -88,7 +88,7 @@
   };
 
   const UNITS = 1000;            // 캔버스 내부 좌표 (화면 크기가 바뀌어도 그대로)
-  const TOOL_COUNT = 6;          // 툴바 버튼 수
+  const TOOL_COUNT = 7;          // 툴바 버튼 수
   const GAP = 16;                // 캔버스와 양옆 칸 사이
   const DEFAULT_ITEM = 0.32;     // 캔버스에 처음 놓일 때 크기 (캔버스 대비)
   const MIN_ITEM = 16;           // 캔버스 조각 최소 크기 (units)
@@ -731,11 +731,17 @@
     });
   }
 
-  // 자른 부분(화면 기준): 뒤집혀 있으면 좌우가 바뀜
+  // 자른 부분(화면 기준): 좌우로 뒤집혀 있으면 좌우가, 상하로 뒤집혀 있으면 위아래가 바뀜
   function displayCrop(item) {
-    const { l, t, r, b } = item.crop;
-    return item.flip ? { l: r, t, r: l, b } : { l, t, r, b };
+    let { l, t, r, b } = item.crop;
+    if (item.flip) [l, r] = [r, l];
+    if (item.flipY) [t, b] = [b, t];
+    return { l, t, r, b };
   }
+
+  // 이미지의 뒤집기 (좌우 · 상하)
+  const flipCss = (item) =>
+    item.flip || item.flipY ? `scale(${item.flip ? -1 : 1}, ${item.flipY ? -1 : 1})` : "";
 
   // 자르기 전 전체 이미지의 크기와 중심
   function fullFrame(item) {
@@ -758,10 +764,10 @@
     item.x = frame.x + offset.x;
     item.y = frame.y + offset.y;
 
-    const display = { l: x0, t: y0, r: 1 - x1, b: 1 - y1 };
-    item.crop = item.flip
-      ? { l: display.r, t: display.t, r: display.l, b: display.b }
-      : display;
+    let l = x0, t = y0, r = 1 - x1, b = 1 - y1;
+    if (item.flip) [l, r] = [r, l];
+    if (item.flipY) [t, b] = [b, t];
+    item.crop = { l, t, r, b };
   }
 
   const maskPath = (mask) =>
@@ -776,7 +782,7 @@
     image.style.height = `${frame.h}px`;
     image.style.left = `${-frame.crop.l * frame.w}px`;
     image.style.top = `${-frame.crop.t * frame.h}px`;
-    image.style.transform = item.flip ? "scaleX(-1)" : "";
+    image.style.transform = flipCss(item);
     image.style.clipPath = maskPath(item.mask);
   }
 
@@ -873,8 +879,10 @@
     const frame = fullFrame(item);
     const local = rotate({ x: point.x - frame.x, y: point.y - frame.y }, -item.rotation);
     let fx = local.x / frame.w + 0.5;
+    let fy = local.y / frame.h + 0.5;
     if (item.flip) fx = 1 - fx;
-    return { fx, fy: local.y / frame.h + 0.5 };
+    if (item.flipY) fy = 1 - fy;
+    return { fx, fy };
   }
 
   // 커서 아래에서 잠기지 않은 가장 위의 조각 (모양으로 자른 바깥은 통과)
@@ -895,6 +903,20 @@
   function exitModes() {
     exitCrop();
     exitCut();
+  }
+
+  // 화면 위치가 선택 테두리 안인지 (한 조각이면 그 조각의 회전된 상자, 여러 개면 전체를 감싸는 상자)
+  function insideSelection(x, y) {
+    const list = editableSelection().filter((item) => !item.hidden);
+    if (!list.length) return false;
+    const point = toUnits(x, y);
+    if (list.length === 1) {
+      const item = list[0];
+      const local = rotate({ x: point.x - item.x, y: point.y - item.y }, -item.rotation);
+      return Math.abs(local.x) <= item.w / 2 && Math.abs(local.y) <= item.h / 2;
+    }
+    const box = boundsOf(list);
+    return point.x >= box.left && point.x <= box.right && point.y >= box.top && point.y <= box.bottom;
   }
 
   /* =========================================
@@ -923,9 +945,19 @@
       return;
     }
 
-    const item = event.button === 0 ? itemAt(event.clientX, event.clientY) : null;
     const toggleKey = event.metaKey || event.ctrlKey;
     const shift = event.shiftKey;
+
+    // 선택된 것의 테두리 상자 안을 누르면: 위나 아래에 다른 조각이 있어도 무조건 선택된 것을 움직임
+    if (event.button === 0 && !toggleKey && !shift && !cropping && insideSelection(event.clientX, event.clientY)) {
+      startTimer();
+      const duplicated = event.altKey && duplicateSelection(false);
+      startMove(event);
+      if (action) action.duplicated = duplicated;
+      return;
+    }
+
+    const item = event.button === 0 ? itemAt(event.clientX, event.clientY) : null;
 
     if (cropping && item?.uid !== cropping.uid) exitCrop();
 
@@ -973,7 +1005,8 @@
 
   canvas.addEventListener("dblclick", (event) => {
     if (cutting) return;
-    const item = itemAt(event.clientX, event.clientY);
+    const only = selection.size === 1 && insideSelection(event.clientX, event.clientY) ? selectedItems()[0] : null;
+    const item = only ?? itemAt(event.clientX, event.clientY);
     if (item && !cropping) {
       setSelection([item.uid]);
       enterCrop();
@@ -1345,7 +1378,7 @@
     const ghost = document.createElement("div");
     ghost.className = "crop-ghost";
     const image = createItemImage(item);
-    image.style.transform = item.flip ? "scaleX(-1)" : "";
+    image.style.transform = flipCss(item);
     image.style.clipPath = maskPath(item.mask);
     ghost.appendChild(image);
     stage.appendChild(ghost);
@@ -1644,8 +1677,8 @@
     const shown = { x0: frame.crop.l, x1: 1 - frame.crop.r, y0: frame.crop.t, y1: 1 - frame.crop.b };
     const x0 = Math.max(shown.x0, item.flip ? 1 - maxX : minX);
     const x1 = Math.max(x0 + MIN_ITEM / frame.w, Math.min(shown.x1, item.flip ? 1 - minX : maxX));
-    const y0 = Math.max(shown.y0, minY);
-    const y1 = Math.max(y0 + MIN_ITEM / frame.h, Math.min(shown.y1, maxY));
+    const y0 = Math.max(shown.y0, item.flipY ? 1 - maxY : minY);
+    const y1 = Math.max(y0 + MIN_ITEM / frame.h, Math.min(shown.y1, item.flipY ? 1 - minY : maxY));
 
     item.mask = points.map(([x, y]) => [Number(x.toFixed(4)), Number(y.toFixed(4))]);
     setDisplayCrop(item, frame, x0, x1, y0, y1);
@@ -1789,8 +1822,9 @@
   ========================================= */
 
   const ICONS = {
-    lock: '<svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"/></svg>',
-    unlock: '<svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 4.9-.7"/></svg>',
+    // 잠김: 꽉 찬 몸통 + 닫힌 고리 + 열쇠 구멍 / 열림: 빈 몸통 + 옆으로 열린 고리
+    lock: '<svg viewBox="0 0 16 16" class="icon-lock"><path d="M5.2 7.2V5.3a2.8 2.8 0 0 1 5.6 0v1.9"/><rect x="3.2" y="7.2" width="9.6" height="6.8" rx="1.6" class="icon-solid"/><path d="M8 9.8v1.6" class="icon-hole"/></svg>',
+    unlock: '<svg viewBox="0 0 16 16" class="icon-unlock"><path d="M5.2 7.2V5.3a2.8 2.8 0 0 1 5.5-.8"/><rect x="3.2" y="7.2" width="9.6" height="6.8" rx="1.6"/></svg>',
     eye: '<svg viewBox="0 0 16 16"><path d="M1.8 8S4.2 3.8 8 3.8 14.2 8 14.2 8 11.8 12.2 8 12.2 1.8 8 1.8 8z"/><circle cx="8" cy="8" r="1.9"/></svg>',
     eyeOff: '<svg viewBox="0 0 16 16"><path d="M1.8 8S4.2 3.8 8 3.8 14.2 8 14.2 8 11.8 12.2 8 12.2 1.8 8 1.8 8z"/><path d="M2.5 13.5l11-11"/></svg>'
   };
@@ -1891,7 +1925,7 @@
           thumb.src = src;
           thumb.dataset.src = src;
         }
-        thumb.style.transform = data.item.flip ? "scaleX(-1)" : "";
+        thumb.style.transform = flipCss(data.item);
       }
 
       name.textContent = rowName(data);
@@ -2361,6 +2395,24 @@
     commit();
   }
 
+  // 상하 반전: 여러 개면 전체를 거울처럼 위아래로 뒤집음
+  function flipSelectedVertical() {
+    const list = editableSelection();
+    if (!list.length) return;
+    exitModes();
+
+    const center = centerOf(list);
+    list.forEach((item) => {
+      item.flipY = !item.flipY;
+      if (list.length > 1) {
+        item.y = 2 * center.y - item.y;
+        item.rotation = normalizeAngle(-item.rotation);
+      }
+    });
+    renderItems();
+    commit();
+  }
+
   function removeSelected() {
     const list = selectedItems();
     if (!list.length) return;
@@ -2441,6 +2493,7 @@
       case "duplicate": exitModes(); duplicateSelection(); break;
       case "rotate": rotateSelected(event.shiftKey ? -90 : 90); break;
       case "flip": flipSelected(); break;
+      case "flipY": flipSelectedVertical(); break;
       case "crop": cropping ? exitCrop() : enterCrop(); break;
       case "cut": cutting ? applyCut() : enterCut(); break;
       case "forward": moveLayer(1); break;
@@ -2918,6 +2971,7 @@
 
     tool("rotate").disabled = !editable.length;
     tool("flip").disabled = !editable.length;
+    tool("flipY").disabled = !editable.length;
     tool("crop").disabled = !single;
     tool("cut").disabled = !single;
     tool("crop").classList.toggle("is-open", Boolean(cropping));
@@ -2966,7 +3020,7 @@
 
       // 전체 이미지의 중심으로 옮긴 뒤 (뒤집기 → 이미지 기준 좌표)
       context.translate(((crop.r - crop.l) * fw) / 2, ((crop.b - crop.t) * fh) / 2);
-      if (item.flip) context.scale(-1, 1);
+      if (item.flip || item.flipY) context.scale(item.flip ? -1 : 1, item.flipY ? -1 : 1);
 
       // 모양 자르기
       if (item.mask) {
