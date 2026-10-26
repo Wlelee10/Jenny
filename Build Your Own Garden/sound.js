@@ -133,12 +133,13 @@
       tone({ freq: 2640, gain: 0.013, decay: 0.05 });
     },
 
-    // 누를 때: 부드럽고 낮은 "톡" (나무 · 유리 사이의 짧은 소리)
+    // 누를 때: 실험실 기계 같은 짧은 디지털 "삑" — 위로 올라가는 음 + 아주 작은 전자 메아리
     click() {
       if (!ready()) return;
-      tone({ freq: 880, type: "triangle", gain: 0.07, attack: 0.002, decay: 0.09, glide: 0.62 });
-      tone({ freq: 1320, gain: 0.025, attack: 0.002, decay: 0.06 });
-      hiss({ from: 3200, q: 1.2, gain: 0.03, attack: 0.001, decay: 0.025 });
+      tone({ freq: 1250, gain: 0.05, attack: 0.002, decay: 0.055, glide: 1.7 });
+      tone({ freq: 2500, type: "square", gain: 0.006, attack: 0.001, decay: 0.03, glide: 1.4 });
+      hiss({ from: 7000, q: 2, gain: 0.018, attack: 0.001, decay: 0.012 });
+      tone({ freq: 2100, gain: 0.016, attack: 0.002, decay: 0.05, glide: 1.25, at: 0.07 });
     },
 
     start() {
