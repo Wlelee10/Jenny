@@ -253,18 +253,25 @@ function drawGateArt() {
     dots[n + 1] = y;
     dots[n + 2] = r;
     dots[n + 3] = 0.05 + 0.95 * t * t * (3 - 2 * t);
+    dots[n + 10] = right ? 1 : 0;
     n += STRIDE;
   }
 
   Object.assign(gateScene, { ready: true, width, height, k, context, dots, area });
   gateFrame(performance.now(), true);
+  wakeGate();
 }
 
 /* ---------- 호버 인터랙션 ----------
    1. 커서 근처 점들이 자석처럼 밀려났다가 탄성 있게 제자리로 돌아옴
    2. 커서 바로 아래 점들은 잠깐 0 또는 1 글자로 바뀌었다가 다시 점으로 (손이 데이터로 만들어졌다는 것) */
 
-const STRIDE = 10;
+const STRIDE = 11; // [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char, hand]
+
+/* 호버 전에도: 두 손이 천천히 숨 쉬듯 떠다니고(서로 반대 박자, 살짝 다가갔다 멀어짐),
+   여기저기 점이 잠깐씩 0 · 1 로 반짝임 */
+const IDLE_PERIOD = 7;      // 초. 한 번 떠올랐다 내려오는 시간
+const IDLE_FLICKER = 7;     // 1초에 0 · 1 로 반짝이는 점 수
 
 function gateFrame(now, once) {
   const scene = gateScene;
@@ -280,14 +287,38 @@ function gateFrame(now, once) {
   const DAMP = 11;           // 흔들림이 잦아드는 정도
   const fade = Math.pow(0.25, dt); // 0 · 1 이 다시 점으로 (약 1초)
 
+  // 숨 쉬는 움직임 (손마다 반대 박자)
+  const phase = (now / 1000) * ((Math.PI * 2) / IDLE_PERIOD);
+  const drift = [
+    { x: Math.sin(phase * 0.5) * 0.004 * k, y: Math.sin(phase) * 0.006 * k },
+    { x: -Math.sin(phase * 0.5 + 0.8) * 0.004 * k, y: Math.sin(phase + Math.PI) * 0.006 * k }
+  ];
+
+  // 가끔 아무 점이나 0 · 1 로 반짝 (입장 화면이 보일 때만)
+  const gateOpen = gateArt.isConnected && !gateArt.closest("[hidden]");
+  if (!once && gateOpen) {
+    let spawn = IDLE_FLICKER * dt;
+    while (spawn > 0) {
+      if (Math.random() < spawn) {
+        const j = Math.floor(Math.random() * (dots.length / STRIDE)) * STRIDE;
+        if (dots[j + 3] > 0.5 && dots[j + 8] < 0.05) {
+          dots[j + 9] = Math.random() < 0.5 ? 0 : 1;
+          dots[j + 8] = 1;
+        }
+      }
+      spawn -= 1;
+    }
+  }
+
   context.clearRect(0, 0, width, height);
   context.textAlign = "center";
   context.textBaseline = "middle";
   let active = false;
 
   for (let i = 0; i < dots.length; i += STRIDE) {
-    const hx = dots[i];
-    const hy = dots[i + 1];
+    const sway = drift[dots[i + 10]];
+    const hx = dots[i] + sway.x;
+    const hy = dots[i + 1] + sway.y;
     const r = dots[i + 2];
     if (hx < -push || hx > width + push || hy < -push || hy > height + push) continue;
     const alpha = dots[i + 3];
@@ -348,7 +379,8 @@ function gateFrame(now, once) {
 
   // 움직임이 남아 있으면 계속, 다 멈추면 쉼
   if (once) return;
-  if ((active || pointer) && gateArt.isConnected) {
+  // 입장 화면이 보이는 동안만 계속 (숨 쉬는 움직임) — 영상이 시작되면 멈춤
+  if (gateOpen) {
     requestAnimationFrame((time) => gateFrame(time));
   } else {
     scene.running = false;
