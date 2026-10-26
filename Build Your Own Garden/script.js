@@ -379,6 +379,7 @@ function gateFrame(now, once) {
       context.fill();
     }
     if (b > 0.02) {
+      context.fillStyle = "#b3141e"; // 0 · 1 은 사이트의 빨간색
       context.globalAlpha = Math.max(alpha, 0.35) * b;
       context.font = `700 ${Math.max(r * 3.2, 0.006 * k).toFixed(1)}px "Courier New", Courier, monospace`;
       context.fillText(dots[i + 9] ? "1" : "0", x, y);
@@ -576,7 +577,14 @@ async function playOpening() {
       const dir = Math.sign(sweepTarget - sweep);
       sweep = Math.max(0, Math.min(1, sweep + (dir * dt) / (dir > 0 ? SWEEP_MS : SWEEP_MS * 0.6)));
       const e = sweep < 0.5 ? 2 * sweep * sweep : 1 - Math.pow(-2 * sweep + 2, 2) / 2;
-      halo?.style.setProperty("--sweep", `${(e * 197).toFixed(2)}deg`);
+      // 위 가운데(0deg) 기준 빈 틈의 반쪽 g: 180+F(아무것도 없음) → -F(다 참). 틈 가장자리는 F만큼 부드럽게
+      const F = 50;
+      const g = 180 + F - e * (180 + 2 * F);
+      const top = Math.min(1, Math.max(0, -g / F)); // 틈이 닫히는 만큼 위 가운데도 차오름
+      const g0 = Math.max(0, g);
+      const g1 = Math.min(180, g0 + F);
+      const mask = `conic-gradient(from 0deg, rgba(0,0,0,${top.toFixed(3)}) 0deg, rgba(0,0,0,${top.toFixed(3)}) ${g0.toFixed(1)}deg, #000 ${g1.toFixed(1)}deg, #000 ${(360 - g1).toFixed(1)}deg, rgba(0,0,0,${top.toFixed(3)}) ${(360 - g0).toFixed(1)}deg)`;
+      halo?.style.setProperty("--halo-mask", g >= 180 + F - 0.01 ? "conic-gradient(transparent 0deg 360deg)" : mask);
       halo?.classList.toggle("is-full", sweep >= 1); // 다 감싸면 이음매 없이 전체
       if (sweep !== sweepTarget) sweepFrame = requestAnimationFrame(step);
     };
