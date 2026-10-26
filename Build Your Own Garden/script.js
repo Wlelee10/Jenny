@@ -157,15 +157,17 @@ function showPlayIfStopped() {
 }
 
 /* =========================================
-   GATE ART: 양쪽에서 서로를 향해 뻗는 두 손 (점 격자)
-   손 모양을 작은 캔버스에 그린 뒤, 칸마다 점 하나로 옮김
-   안쪽은 큰 점, 가장자리 · 그늘은 작은 점, 손끝으로 갈수록 옅어짐
+   GATE ART: 양쪽에서 서로를 향해 뻗는 두 손 (점으로 된 가로줄)
+   손 모양 지도(gate-hands.png: 진할수록 손)를 화면 폭에 맞춰 놓고,
+   가로줄마다 촘촘한 점을 찍음 — 진한 곳은 큰 점, 옅은 곳은 작은 점
 ========================================= */
 
 const gateArt = document.querySelector("#gateArt");
+const handMap = new Image();
+handMap.src = "gate-hands.png";
 
 function drawGateArt() {
-  if (!gateArt?.isConnected) return;
+  if (!gateArt?.isConnected || !handMap.complete || !handMap.naturalWidth) return;
   const width = gateArt.clientWidth;
   const height = gateArt.clientHeight;
   if (!width || !height) return;
@@ -177,83 +179,37 @@ function drawGateArt() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
   context.clearRect(0, 0, width, height);
 
-  // 점 간격 (화면 폭에 비례)
-  const cell = Math.max(5, Math.min(11, width / 150));
-  const cols = Math.ceil(width / cell);
-  const rows = Math.ceil(height / cell);
+  // 지도(16:9)를 화면 폭에 맞추고 세로 가운데 (세로가 짧은 화면은 높이에 맞춤)
+  const mapW = Math.max(width, height * (16 / 9));
+  const mapH = mapW * (9 / 16);
+  const left = (width - mapW) / 2;
+  const top = (height - mapH) / 2;
 
-  // 1. 손 모양 (칸 단위 해상도)
-  const mask = document.createElement("canvas");
-  mask.width = cols;
-  mask.height = rows;
-  const m = mask.getContext("2d");
-  const X = (x) => x * cols;
-  const Y = (y) => y * rows;
-  const S = (w) => w * rows;
-  const stroke = (points, w) => {
-    m.lineWidth = S(w);
-    m.lineCap = "round";
-    m.lineJoin = "round";
-    m.beginPath();
-    points.forEach(([x, y], i) => (i ? m.lineTo(X(x), Y(y)) : m.moveTo(X(x), Y(y))));
-    m.stroke();
-  };
-  const blob = (x, y, rx, ry, angle = 0) => {
-    m.beginPath();
-    m.ellipse(X(x), Y(y), S(rx), S(ry), angle, 0, Math.PI * 2);
-    m.fill();
-  };
-  m.fillStyle = m.strokeStyle = "#000";
+  // 점 간격: 가로는 촘촘, 세로는 줄 간격 (참고 이미지 1200px 기준 7px · 13px)
+  const unit = mapW / 1200;
+  const gapX = 7 * unit;
+  const gapY = 13 * unit;
+  const maxR = 2.5 * unit;
 
-  // 왼쪽: 화면 밖에서 들어오는 팔 → 손등 → 앞으로 뻗은 검지, 나머지 손가락은 아래로 살짝 굽음
-  stroke([[-0.05, 0.42], [0.12, 0.40], [0.24, 0.44]], 0.21);
-  blob(0.27, 0.49, 0.085, 0.06, 0.25);
-  stroke([[0.29, 0.50], [0.35, 0.55], [0.41, 0.60]], 0.05);
-  stroke([[0.28, 0.54], [0.32, 0.62], [0.30, 0.67]], 0.05);
-  stroke([[0.25, 0.56], [0.28, 0.65], [0.26, 0.69]], 0.048);
-  stroke([[0.22, 0.56], [0.24, 0.64], [0.22, 0.67]], 0.044);
-  stroke([[0.24, 0.49], [0.31, 0.47], [0.33, 0.50]], 0.045);
+  const cols = Math.ceil(width / gapX);
+  const rows = Math.ceil(height / gapY);
+  const sample = document.createElement("canvas");
+  sample.width = cols;
+  sample.height = rows;
+  const s = sample.getContext("2d");
+  s.imageSmoothingEnabled = true;
+  s.drawImage(handMap, left / gapX, top / gapY, mapW / gapX, mapH / gapY);
+  const data = s.getImageData(0, 0, cols, rows).data;
 
-  // 오른쪽: 화면 밖에서 들어오는 팔 → 손 → 아래로 늘어진 손가락과 왼쪽으로 뻗은 검지
-  stroke([[1.05, 0.40], [0.90, 0.43], [0.76, 0.52]], 0.2);
-  blob(0.71, 0.58, 0.08, 0.065, -0.5);
-  stroke([[0.69, 0.57], [0.64, 0.60], [0.605, 0.645]], 0.05);
-  stroke([[0.68, 0.62], [0.66, 0.70], [0.655, 0.79]], 0.05);
-  stroke([[0.71, 0.63], [0.70, 0.72], [0.70, 0.82]], 0.05);
-  stroke([[0.74, 0.62], [0.745, 0.70], [0.75, 0.76]], 0.048);
-  stroke([[0.77, 0.58], [0.79, 0.64], [0.80, 0.69]], 0.044);
-
-  const data = m.getImageData(0, 0, cols, rows).data;
-  const at = (c, r) => (c < 0 || r < 0 || c >= cols || r >= rows ? 0 : data[(r * cols + c) * 4 + 3] / 255);
-  const noise = (c, r) => {
-    const v = Math.sin(c * 127.1 + r * 311.7) * 43758.5453;
-    return v - Math.floor(v);
-  };
-
-  // 2. 칸마다 점 하나
+  context.fillStyle = "#111111";
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const a = at(c, r);
-      if (a < 0.08) continue;
-      const x = (c + 0.5) * cell;
-      const y = (r + 0.5) * cell;
-
-      // 가운데(손끝 사이)로 갈수록 옅어짐
-      const fromCenter = Math.abs(x - width / 2) / (width / 2);
-      const fade = Math.min(1, Math.max(0, (fromCenter - 0.12) / 0.3));
-      if (fade <= 0.02) continue;
-
-      // 가장자리 · 그늘 (위아래 이웃이 비어 있거나 무늬): 작은 점
-      const empty = [at(c, r - 1), at(c, r + 1), at(c - 1, r), at(c + 1, r)].filter((v) => v < 0.5).length;
-      const edge = empty >= 2 || a < 0.5;
-      const shade = noise(c, r) < 0.08 + 0.2 * Math.max(0, Math.sin(r * 0.9 + c * 0.15));
-      const small = edge || shade;
-      const radius = cell * (small ? 0.14 : 0.36);
-
-      context.globalAlpha = (small ? 0.75 : 0.95) * fade;
-      context.fillStyle = "#111111";
+      const a = data[(r * cols + c) * 4 + 3] / 255;
+      if (a < 0.22) continue;
+      const strong = a > 0.6;
+      context.globalAlpha = strong ? 1 : 0.45 + a * 0.5;
       context.beginPath();
-      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.arc((c + 0.5) * gapX, (r + 0.5) * gapY, maxR * (strong ? 1 : 0.6 + a * 0.45), 0, Math.PI * 2);
       context.fill();
     }
   }
@@ -261,6 +217,7 @@ function drawGateArt() {
 }
 
 if (gateArt) {
+  handMap.addEventListener("load", drawGateArt);
   drawGateArt();
   window.addEventListener("resize", drawGateArt);
 }
