@@ -510,15 +510,14 @@ body.is-falling .glass {
   to { opacity: 1; }
 }
 
+/* 글: 왼손 끝에서 오른손 쪽으로 계단처럼 내려가는 배치 (참고 이미지) */
 .gate-copy {
-  position: relative;
+  position: absolute;
+  left: 35vw;
+  top: 27vh;
   z-index: 1;
-  /* 작은 창에서 손과 겹쳐도 글자가 잘 읽히도록 흰 테두리 빛 */
+  text-align: left;
   text-shadow: 0 0 6px #ffffff, 0 0 12px #ffffff, 0 0 18px #ffffff;
-  padding: 0;
-  width: min(640px, 100%);
-  margin-top: 0;
-  text-align: center;
 }
 
 .gate-copy > * {
@@ -537,45 +536,71 @@ body.is-falling .glass {
 }
 
 .gate-title {
-  margin: 0 0 clamp(14px, 2vw, 22px);
-  font-size: clamp(20px, 2.15vw, 30px);
+  margin: 0 0 1.6vw;
+  color: var(--red, #b3141e);
+  font-size: clamp(20px, 2.1vw, 34px);
   font-weight: 700;
   letter-spacing: 0.005em;
   line-height: 1.2;
 }
 
 .gate-text {
-  margin: 0 0 clamp(12px, 1.6vw, 18px);
-  font-size: clamp(11px, 1.05vw, 14px);
-  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9vw;
+  margin: 0 0 1.3vw;
+  font-size: clamp(11px, 1.05vw, 17px);
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
-.gate-soft {
-  color: #a3a3a3;
-}
+/* 줄마다 조금씩 오른쪽으로 */
+.gate-soft { margin-left: 3.7vw; color: #b5b5b5; }
+.gate-soft span + span { margin-left: 1vw; }
+.gate-strong { margin-left: 8.1vw; color: var(--ink); }
+.gate-strong span + span { margin-left: 1.7vw; }
 
-.gate-strong {
-  color: var(--ink);
-  font-weight: 700;
+/* 좁은 화면: 가운데 정렬 한 덩어리로 */
+@media (max-width: 900px) {
+  .gate-copy {
+    left: 50%;
+    top: 50%;
+    width: min(92vw, 560px);
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .gate-text {
+    white-space: normal;
+    align-items: center;
+  }
+
+  .gate-soft,
+  .gate-strong,
+  .gate-text span + span {
+    margin-left: 0;
+  }
 }
 
 /* 준비 중: 얇은 선 → 다 되면 그 자리에 검정 알약 버튼 */
 .gate-foot {
   position: relative;
   height: 44px;
-  margin-top: clamp(18px, 2.4vw, 30px);
+  margin-top: 2vw;
+  margin-left: 7vw;
 }
+
+
 
 .opening-loader {
   --progress: 0;
 
   position: absolute;
-  left: 50%;
+  left: 0;
   top: 50%;
 
   width: 120px;
   height: 1px;
-  margin-left: -60px;
 
   background: rgba(0, 0, 0, 0.08);
   opacity: 0;
@@ -598,9 +623,9 @@ body.is-falling .glass {
 
 .gate-enter {
   position: absolute;
-  left: 50%;
+  left: 0;
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
 
   padding: 11px 18px;
   border: 0;
@@ -640,7 +665,7 @@ body.is-falling .glass {
 }
 
 .gate-enter:hover {
-  transform: translate(-50%, calc(-50% - 1px));
+  transform: translateY(calc(-50% - 1px));
 }
 
 .gate-enter:hover::after {
@@ -649,8 +674,8 @@ body.is-falling .glass {
 }
 
 @keyframes gate-btn-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 6px)); }
-  to { opacity: 1; transform: translate(-50%, -50%); }
+  from { opacity: 0; transform: translateY(calc(-50% + 6px)); }
+  to { opacity: 1; transform: translateY(-50%); }
 }
 
 /* 오른쪽 아래: [ SKIP ] / 왼쪽 아래: [ SOUND ON ] */
@@ -1055,5 +1080,31 @@ body.is-falling .abyss {
 @media (max-width: 700px) {
   .mosaic-window {
     top: 120px;
+  }
+}
+
+@media (max-width: 900px) {
+  .gate-copy .gate-foot {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 0;
+  }
+
+  .gate-copy .gate-enter,
+  .gate-copy .gate-enter:hover {
+    position: relative;
+    top: auto;
+    transform: none;
+    animation-name: gate-in;
+  }
+
+  .gate-copy .opening-loader {
+    position: relative;
+    top: auto;
+  }
+
+  .gate-copy .opening-loader:not(.is-visible) {
+    display: none;
   }
 }

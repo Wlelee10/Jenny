@@ -157,9 +157,9 @@ function showPlayIfStopped() {
 }
 
 /* =========================================
-   GATE ART: 양쪽에서 서로를 향해 뻗는 두 손 (0과 1로 된 글자 줄)
-   손 모양 지도(gate-hands.png: 진할수록 손)를 화면에 맞춰 놓고,
-   칸마다 0 또는 1을 찍음 — 옅은 가장자리는 작은 점(.)
+   GATE ART: 서로를 향해 뻗는 두 손 (점으로 된 가로줄)
+   손 모양 지도(gate-hands.png: 진할수록 손)에서 왼손은 왼쪽 위, 오른손은 오른쪽 아래에 놓고
+   칸마다 점 하나 — 꽉 찬 곳은 큰 점, 그늘 · 가장자리는 작은 점
 ========================================= */
 
 const gateArt = document.querySelector("#gateArt");
@@ -179,57 +179,43 @@ function drawGateArt() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
   context.clearRect(0, 0, width, height);
 
-  // 지도(16:9)를 화면 폭에 맞추고 세로 가운데 (세로가 긴 화면은 높이에 맞춤)
-  const mapW = Math.max(width, height * (16 / 9));
-  const mapH = mapW * (9 / 16);
-  const left = (width - mapW) / 2;
-  const top = (height - mapH) / 2;
+  // 지도(참고 이미지)에서 왼손 · 오른손을 따로 놓음 (참고 배치)
+  //   왼손: 왼쪽 위 (세로 중심 40%) / 오른손: 오른쪽 아래 (세로 중심 70%), 둘 다 화면 끝에 붙음
+  const mapW = Math.max(width * 1.02, height * 1.2);
+  const mapH = mapW * (handMap.naturalHeight / handMap.naturalWidth);
+  const SPLIT = 0.47;
 
-  // 글자 칸 (참고 이미지 1672px 기준 가로 9.5px · 줄 18px)
-  const unit = mapW / 1672;
-  const gapX = 9.5 * unit;
-  const gapY = 18 * unit;
+  // 점 칸 (참고: 가로 · 세로 간격이 거의 같고, 꽉 찬 곳은 큰 점 · 그늘은 작은 점)
+  const unit = mapW / 1000;
+  const gap = 11.6 * unit;
+  const bigR = 3.2 * unit;
+  const smallR = 1.25 * unit;
+  const cols = Math.ceil(width / gap);
+  const rows = Math.ceil(height / gap);
 
-  const cols = Math.ceil(width / gapX);
-  const rows = Math.ceil(height / gapY);
   const sample = document.createElement("canvas");
   sample.width = cols;
   sample.height = rows;
   const s = sample.getContext("2d");
   s.imageSmoothingEnabled = true;
-
-  // 두 손 사이에 글과 버튼이 들어가도록: 왼손은 왼쪽으로, 오른손은 오른쪽으로 벌림
-  const copy = document.querySelector(".gate-copy");
-  const need = (copy ? copy.getBoundingClientRect().width : 600) + 70;
-  const LEFT_END = 0.405;   // 지도에서 왼손 끝 (가로 비율)
-  const RIGHT_START = 0.525; // 지도에서 오른손 시작
-  const SPLIT = 0.465;
-  // (작은 창에서는 손이 화면 밖으로 다 밀려나지 않게 벌리는 정도에 한도)
-  const spread = Math.min(0.19 * mapW, Math.max(0, (need - (RIGHT_START - LEFT_END) * mapW) / 2));
   const mw = handMap.naturalWidth;
   const mh = handMap.naturalHeight;
-  const half = (sx, sw, dx) =>
-    s.drawImage(handMap, sx * mw, 0, sw * mw, mh, (left + sx * mapW + dx) / gapX, top / gapY, (sw * mapW) / gapX, mapH / gapY);
-  half(0, SPLIT, -spread);
-  half(SPLIT, 1 - SPLIT, spread);
+  const place = (sx, sw, x, centerY, mapCenter) => {
+    const y = centerY - mapCenter * mapH;
+    s.drawImage(handMap, sx * mw, 0, sw * mw, mh, (x + sx * mapW) / gap, y / gap, (sw * mapW) / gap, mapH / gap);
+  };
+  place(0, SPLIT, 0, height * 0.42, 0.44);                       // 왼손
+  place(SPLIT, 1 - SPLIT, width - mapW, height * 0.69, 0.51);    // 오른손
   const data = s.getImageData(0, 0, cols, rows).data;
 
-  // 칸마다 늘 같은 0/1 (다시 그려도 바뀌지 않게)
-  const bit = (c, r) => {
-    const v = Math.sin(c * 12.9898 + r * 78.233) * 43758.5453;
-    return v - Math.floor(v) < 0.5 ? "0" : "1";
-  };
-
-  context.font = `700 ${(gapY * 0.72).toFixed(2)}px "Courier New", Courier, monospace`;
-  context.textAlign = "center";
-  context.textBaseline = "middle";
   context.fillStyle = "#111111";
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const a = data[(r * cols + c) * 4 + 3] / 255;
-      if (a < 0.2) continue;
-      context.globalAlpha = a > 0.55 ? 1 : 0.4 + a * 0.6;
-      context.fillText(a > 0.32 ? bit(c, r) : ".", (c + 0.5) * gapX, (r + 0.5) * gapY);
+      if (a < 0.1) continue;
+      context.beginPath();
+      context.arc((c + 0.5) * gap, (r + 0.5) * gap, a > 0.42 ? bigR : smallR, 0, Math.PI * 2);
+      context.fill();
     }
   }
   context.globalAlpha = 1;
