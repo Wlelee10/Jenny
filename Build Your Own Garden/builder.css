@@ -1312,7 +1312,8 @@
 
 /* 끌고 있는 줄: 선택된 파란색 그대로 + 또렷한 그림자로 손을 따라오는 게 잘 보이게 */
 .layer-row.is-dragging {
-  z-index: 2;
+  z-index: 10;
+  will-change: transform;
   background: #d6e8ff;
   box-shadow:
     0 0 0 1px rgba(80, 150, 240, 0.45),
@@ -1320,8 +1321,10 @@
   transition: none;
 }
 
+/* 끄는 동안: 모든 줄을 따로 그려서(사파리) 끄는 줄이 비켜 주는 줄들 아래로 깔리지 않게 */
 .layers.is-reordering .layer-row {
   cursor: grabbing;
+  will-change: transform;
 }
 
 /* 그룹 펼치기 / 접기 (조각 줄에서는 빈 칸) */

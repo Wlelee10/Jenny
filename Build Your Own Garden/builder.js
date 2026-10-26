@@ -2054,13 +2054,14 @@
     [...layersList.children].forEach((row, j) => {
       const k = block.indexOf(j);
       row.classList.toggle("is-dragging", k >= 0);
+      // (3D 이동 + 앞으로 당김: 사파리에서도 끄는 줄이 항상 맨 위에 그려지게)
       if (k >= 0) {
-        row.style.transform = `translateY(${((clamp(top, 0, others) + k) - j) * rowHeight}px)`;
+        row.style.transform = `translate3d(0, ${((clamp(top, 0, others) + k) - j) * rowHeight}px, 1px)`;
         return;
       }
       const final = rest < target ? rest : rest + size;
       rest++;
-      row.style.transform = final !== j ? `translateY(${(final - j) * rowHeight}px)` : "";
+      row.style.transform = final !== j ? `translate3d(0, ${(final - j) * rowHeight}px, 0)` : "";
     });
   }
 
