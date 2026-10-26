@@ -417,32 +417,53 @@ async function playOpening() {
   });
 
   /* ---------- 시작 준비 ----------
-     모든 브라우저: 처음엔 LOADING. 아래가 다 끝나야 시작
-       1. 영상 앞부분(바로 재생할 만큼)
-       2. 인트로 이미지 200장 + 조각 이미지 200장 (받고 미리 풀어 둠)
+     처음엔 소개글 + 0과 1로 된 원(로딩). 아래가 다 끝나야 시작 버튼이 나옴
+       1. 영상 전체를 미리 받아 둠 (재생 중에 받느라 멈추는 일이 없도록)
+       2. 인트로 이미지 200장
        3. 인트로 유리 효과를 화면 뒤에서 미리 한 번 그려 봄 (사파리의 첫 호버가 느린 것 방지)
-     → 그동안 소개글을 읽음. 다 되면 [ Click to show your creativity ] — 누르면 영상이 소리와 함께 바로 시작
-     (자동 재생이 되는 브라우저도 글을 읽을 수 있도록 항상 눌러서 시작) */
+     → [ Show your Creativity ] — 누르면 영상이 소리와 함께 바로 시작 */
 
   const openingLoader = document.querySelector("#openingLoader");
+  const loaderRing = document.querySelector("#loaderRing");
   const openingEnter = document.querySelector("#openingEnter");
-  const READY_AHEAD = 2.5;
-  const PREPARE_LIMIT = 30000; // 아주 느린 연결이어도 30초 뒤에는 시작할 수 있게
+  const PREPARE_LIMIT = 45000; // 아주 느린 연결이어도 45초 뒤에는 시작할 수 있게
   const preparedAt = performance.now();
-  let suspended = false;  // 브라우저가 충분히 받았다고 보고 잠시 멈춤
-  let waiting = true;     // 재생 중 받는 것을 기다리는지
-  let started = false;    // 영상이 소리와 함께 시작됨
-  let gateReady = false;  // [ CLICK TO ENTER ] 상태
+  let videoLoaded = 0;    // 영상을 받은 비율 0~1
+  let videoReady = false; // 영상 전체가 준비됨
+  let started = false;
+  let gateReady = false;
   let warm = "no";        // 유리 미리 그리기: no → running → done
 
   opening.classList.add("is-gated");
   openingGate.hidden = false;
   openingSound.hidden = true;
+  openingSkip.hidden = true;
+
+  // 로딩 원: 0과 1 글자 18개를 원 둘레에 (글자는 가끔 바뀜)
+  const RING = 18;
+  const ringChars = [];
+  for (let i = 0; i < RING; i++) {
+    const span = document.createElement("span");
+    const angle = (i / RING) * 360;
+    span.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(calc(var(--k) * -0.014)) rotate(${-angle}deg)`;
+    span.textContent = Math.random() < 0.5 ? "0" : "1";
+    loaderRing?.appendChild(span);
+    ringChars.push(span);
+  }
+  const flipTimer = setInterval(() => {
+    if (!opening.isConnected || gateReady) {
+      clearInterval(flipTimer);
+      return;
+    }
+    const span = ringChars[Math.floor(Math.random() * RING)];
+    if (span) span.textContent = span.textContent === "0" ? "1" : "0";
+  }, 120);
 
   const hideGate = () => {
     opening.classList.remove("is-gated");
     openingGate.hidden = true;
     openingSound.hidden = false;
+    openingSkip.hidden = false; // SKIP은 영상이 나올 때부터
     paintSound();
   };
 
@@ -452,10 +473,10 @@ async function playOpening() {
     openingEnter.hidden = false;
   };
 
-  // 처음부터 재생 (gesture: 사용자가 누른 순간인지)
-  const startVideo = async (gesture) => {
+  // 처음부터 재생
+  const startVideo = async () => {
     if (started || assemblyStarted) return;
-    openingVideo.muted = gesture ? soundOffByUser : false;
+    openingVideo.muted = soundOffByUser;
     try {
       openingVideo.currentTime = 0;
     } catch {
@@ -473,23 +494,58 @@ async function playOpening() {
 
   openingEnter.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (gateReady) startVideo(true);
+    if (gateReady) startVideo();
   });
-  // 준비된 뒤에는 Enter 키로도 시작
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && gateReady && !started && opening.isConnected && !assemblyStarted) startVideo(true);
+    if (event.key === "Enter" && gateReady && !started && opening.isConnected && !assemblyStarted) startVideo();
   });
 
-  const videoProgress = () => {
-    if (suspended || openingVideo.readyState >= 4) return 1;
-    let ahead = 0;
-    const { buffered, currentTime, duration } = openingVideo;
-    for (let i = 0; i < buffered.length; i++) {
-      if (buffered.start(i) <= currentTime + 0.1 && buffered.end(i) > currentTime) ahead = buffered.end(i) - currentTime;
-    }
-    const target = Math.min(READY_AHEAD, (duration || READY_AHEAD) - currentTime);
-    return Math.min(1, target > 0 ? ahead / target : 1);
+  // 영상 받기: 통째로 받아서 메모리에 두고 재생 → 중간에 받느라 멈추지 않음
+  const src = openingVideo.dataset.src || "opening.mp4";
+  const useDirect = () => {
+    // 통째로 받을 수 없으면 일반 방식으로 (거의 다 받아질 때까지 기다림)
+    if (openingVideo.getAttribute("src")) return;
+    openingVideo.src = src;
+    openingVideo.load();
+    const check = () => {
+      const { buffered, duration } = openingVideo;
+      const end = buffered.length ? buffered.end(buffered.length - 1) : 0;
+      videoLoaded = duration ? Math.min(1, end / duration) : 0;
+      if (openingVideo.readyState >= 4 || videoLoaded > 0.98) videoReady = true;
+    };
+    ["progress", "canplaythrough", "loadeddata"].forEach((type) => openingVideo.addEventListener(type, check));
   };
+
+  (async () => {
+    try {
+      const response = await fetch(src);
+      if (!response.ok || !response.body) throw new Error("no stream");
+      const total = Number(response.headers.get("content-length")) || 0;
+      const reader = response.body.getReader();
+      const chunks = [];
+      let received = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        if (total) videoLoaded = Math.min(0.99, received / total);
+      }
+      const blob = new Blob(chunks, { type: "video/mp4" });
+      openingVideo.src = URL.createObjectURL(blob);
+      openingVideo.load();
+      await new Promise((resolve, reject) => {
+        openingVideo.addEventListener("canplaythrough", resolve, { once: true });
+        openingVideo.addEventListener("loadeddata", () => setTimeout(resolve, 300), { once: true });
+        openingVideo.addEventListener("error", reject, { once: true });
+      });
+      videoLoaded = 1;
+      videoReady = true;
+    } catch {
+      openingVideo.removeAttribute("src");
+      useDirect();
+    }
+  })();
 
   const imageProgress = () => {
     // 인트로 글자 이미지만 기다림 (조각 이미지는 START 뒤에 필요해서 영상이 나오는 동안 뒤에서 받음)
@@ -504,48 +560,30 @@ async function playOpening() {
 
   const prepare = () => {
     if (!opening.isConnected || assemblyStarted) return;
-    const video = videoProgress();
     const images = imageProgress();
     const timedOut = performance.now() - preparedAt > PREPARE_LIMIT;
+    if (timedOut && !videoReady) useDirect();
 
-    // 이미지가 다 받아지면 유리 효과를 화면 뒤에서 한 번 그려 봄
     if ((images >= 1 || timedOut) && warm === "no") {
       warm = "running";
       warmUpIntro().then(() => { warm = "done"; });
     }
 
-    const progress = video * 0.4 + images * 0.5 + (warm === "done" ? 0.1 : 0);
-    openingLoader.style.setProperty("--progress", progress.toFixed(3));
+    const progress = videoLoaded * 0.7 + images * 0.25 + (warm === "done" ? 0.05 : 0);
+    const on = Math.round(progress * RING);
+    ringChars.forEach((span, i) => span.classList.toggle("is-on", i < on));
+    openingLoader.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
 
-    if (!started && !gateReady && ((video >= 1 && images >= 1 && warm === "done") || timedOut)) showEnter();
+    if (!started && !gateReady && ((videoReady && images >= 1 && warm === "done") || (timedOut && openingVideo.readyState >= 3))) showEnter();
   };
 
-  ["progress", "loadedmetadata", "loadeddata", "canplay", "canplaythrough"].forEach((type) => {
-    openingVideo.addEventListener(type, prepare);
-  });
-  openingVideo.addEventListener("suspend", () => {
-    if (openingVideo.readyState >= 3) suspended = true;
-    prepare();
-  });
-  openingVideo.addEventListener("waiting", () => { waiting = true; prepare(); });
-  openingVideo.addEventListener("playing", () => { waiting = false; prepare(); });
   const prepareTimer = setInterval(() => {
-    if (!opening.isConnected || assemblyStarted) {
+    if (!opening.isConnected || assemblyStarted || gateReady) {
       clearInterval(prepareTimer);
-      openingLoader?.classList.remove("is-visible");
       return;
     }
     prepare();
-  }, 200);
-
-  // 영상 받기 시작: 사파리는 멈춘 영상을 잘 받아 두지 않으므로 소리 없이 아주 잠깐 재생했다 멈춤
-  // (흰 입장 화면이 덮고 있어 보이지 않음)
-  openingVideo.muted = true;
-  openingVideo.play().then(() => {
-    if (started) return;
-    openingVideo.pause();
-    openingVideo.currentTime = 0;
-  }).catch(() => {});
+  }, 150);
   prepare();
 
   requestAnimationFrame(watchOpening);

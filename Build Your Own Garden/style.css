@@ -109,7 +109,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: calc(var(--g-cell, 40px) * 0.17);
+  gap: calc(var(--g-cell, 40px) * 0.26);
   text-align: right;
 
   pointer-events: none;
@@ -117,7 +117,7 @@ body {
 
 .intro-info p {
   margin: 0;
-  font-size: calc(var(--g-cell, 40px) * 0.39); /* 글자 칸에 비례 → 창과 함께 커지고 작아짐 */
+  font-size: calc(var(--g-cell, 40px) * 0.32); /* 글자 칸에 비례 → 창과 함께 커지고 작아짐 */
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.01em;
@@ -573,30 +573,44 @@ body.is-falling .glass {
 
 
 
+/* 준비 중: 0과 1로 된 원이 천천히 돎 (받아진 만큼 글자가 진해짐) */
 .opening-loader {
-  --progress: 0;
-
   position: absolute;
   left: 50%;
   top: 50%;
+  width: calc(var(--k) * 0.034);
+  height: calc(var(--k) * 0.034);
+  transform: translate(-50%, -50%);
 
-  width: calc(var(--k) * 0.06);
-  height: 1px;
-  transform: translateX(-50%);
-
-  background: rgba(0, 0, 0, 0.08);
   opacity: 0;
   pointer-events: none;
   transition: opacity 400ms ease;
 }
 
-.opening-loader i {
+.loader-ring {
   position: absolute;
   inset: 0;
-  background: rgba(17, 17, 17, 0.55);
-  transform: scaleX(var(--progress));
-  transform-origin: 0 50%;
-  transition: transform 300ms ease;
+  animation: loader-spin 2.8s linear infinite;
+}
+
+.loader-ring span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-family: "Courier New", Courier, monospace;
+  font-size: calc(var(--k) * 0.0058);
+  font-weight: 700;
+  line-height: 1;
+  color: #d4d4d4;
+  transition: color 300ms ease;
+}
+
+.loader-ring span.is-on {
+  color: var(--ink);
+}
+
+@keyframes loader-spin {
+  to { transform: rotate(360deg); }
 }
 
 .opening-loader.is-visible {
@@ -699,9 +713,12 @@ body.is-falling .glass {
   gap: 8px;
 }
 
+/* SOUND · SKIP: 같은 크기 */
 .opening-sound,
 .opening-skip {
-  padding: 7px 11px;
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
@@ -709,9 +726,16 @@ body.is-falling .glass {
   backdrop-filter: blur(6px);
 
   color: var(--ink);
-  font-family: inherit;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 11px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0.02em;
   cursor: pointer;
+}
+
+.opening-skip[hidden] {
+  display: none;
 }
 
 .opening-sound:hover {
