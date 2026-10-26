@@ -851,9 +851,12 @@
       saveButton.disabled = false;
       backButton.disabled = false;
       saveButton.textContent = "SAVE & SHARE";
+      // 서버에 아예 닿지 못하면 브라우저마다 "Load failed"(사파리) · "Failed to fetch"(크롬)처럼 알아보기 어려운 말이 나오므로 바꿔 줌
       saveNote.textContent = error?.name === "SecurityError"
         ? "Open the site through server.py to save."
-        : error?.message || "The garden could not be saved.";
+        : error instanceof TypeError
+          ? "The gallery server could not be reached. Please try again in a moment."
+          : error?.message || "The garden could not be saved.";
     }
   });
 
