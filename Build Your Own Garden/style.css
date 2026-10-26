@@ -510,14 +510,14 @@ body.is-falling .glass {
   to { opacity: 1; }
 }
 
-/* 글: 왼손 끝에서 오른손 쪽으로 계단처럼 내려가는 배치 (참고 이미지) */
+/* 글: 두 손 사이 (참고 3) — 빨간 제목 아래 회색 네 줄, 그 아래 버튼 */
 .gate-copy {
   position: absolute;
-  left: 35vw;
-  top: 27vh;
+  left: 39.3vw;
+  top: 36vh;
   z-index: 1;
   text-align: left;
-  text-shadow: 0 0 6px #ffffff, 0 0 12px #ffffff, 0 0 18px #ffffff;
+  font-family: "Inter", Arial, Helvetica, sans-serif;
 }
 
 .gate-copy > * {
@@ -527,40 +527,34 @@ body.is-falling .glass {
 }
 
 .gate-copy > :nth-child(1) { animation-delay: 300ms; }
-.gate-copy > :nth-child(2) { animation-delay: 1100ms; }
-.gate-copy > :nth-child(3) { animation-delay: 2400ms; }
-.gate-copy > :nth-child(4) { animation-delay: 3600ms; }
+.gate-copy > :nth-child(2) { animation-delay: 1200ms; }
+.gate-copy > :nth-child(3) { animation-delay: 2600ms; }
 
 @keyframes gate-in {
   to { opacity: 1; transform: none; }
 }
 
 .gate-title {
-  margin: 0 0 1.6vw;
+  margin: 0 0 0.85vw;
   color: var(--red, #b3141e);
-  font-size: clamp(20px, 2.1vw, 34px);
+  font-size: clamp(22px, 2vw, 44px);
   font-weight: 700;
-  letter-spacing: 0.005em;
-  line-height: 1.2;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 
 .gate-text {
   display: flex;
   flex-direction: column;
-  gap: 0.9vw;
-  margin: 0 0 1.3vw;
-  font-size: clamp(11px, 1.05vw, 17px);
-  line-height: 1.35;
+  gap: 0;
+  margin: 0;
+  color: #6b6b6b;
+  font-size: clamp(10px, 0.66vw, 15px);
+  line-height: 1.75;
   white-space: nowrap;
 }
 
-/* 줄마다 조금씩 오른쪽으로 */
-.gate-soft { margin-left: 3.7vw; color: #b5b5b5; }
-.gate-soft span + span { margin-left: 1vw; }
-.gate-strong { margin-left: 8.1vw; color: var(--ink); }
-.gate-strong span + span { margin-left: 1.7vw; }
-
-/* 좁은 화면: 가운데 정렬 한 덩어리로 */
+/* 좁은 화면: 가운데 한 덩어리로 */
 @media (max-width: 900px) {
   .gate-copy {
     left: 50%;
@@ -568,26 +562,21 @@ body.is-falling .glass {
     width: min(92vw, 560px);
     transform: translate(-50%, -50%);
     text-align: center;
+    text-shadow: 0 0 6px #ffffff, 0 0 12px #ffffff, 0 0 18px #ffffff;
   }
 
   .gate-text {
     white-space: normal;
     align-items: center;
   }
-
-  .gate-soft,
-  .gate-strong,
-  .gate-text span + span {
-    margin-left: 0;
-  }
 }
 
 /* 준비 중: 얇은 선 → 다 되면 그 자리에 검정 알약 버튼 */
 .gate-foot {
   position: relative;
-  height: 44px;
-  margin-top: 2vw;
-  margin-left: 7vw;
+  height: clamp(36px, 2.1vw, 48px);
+  margin-top: 2.1vw;
+  margin-left: 2.75vw;
 }
 
 
@@ -627,13 +616,13 @@ body.is-falling .glass {
   top: 50%;
   transform: translateY(-50%);
 
-  padding: 11px 18px;
+  padding: 0.75em 1.25em;
   border: 0;
   border-radius: 999px;
   background: #111111;
   color: #ffffff;
   font-family: inherit;
-  font-size: clamp(11px, 0.95vw, 13px);
+  font-size: clamp(12px, 0.78vw, 17px);
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
