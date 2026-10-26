@@ -129,8 +129,16 @@
     // 아주 작은 유리 톡 (START 외의 버튼)
     hover() {
       if (!ready()) return;
-      tone({ freq: 1760, gain: 0.03, decay: 0.07 });
-      tone({ freq: 2640, gain: 0.008, decay: 0.05 });
+      tone({ freq: 1760, gain: 0.05, decay: 0.07 });
+      tone({ freq: 2640, gain: 0.013, decay: 0.05 });
+    },
+
+    // 누를 때: 부드럽고 낮은 "톡" (나무 · 유리 사이의 짧은 소리)
+    click() {
+      if (!ready()) return;
+      tone({ freq: 880, type: "triangle", gain: 0.07, attack: 0.002, decay: 0.09, glide: 0.62 });
+      tone({ freq: 1320, gain: 0.025, attack: 0.002, decay: 0.06 });
+      hiss({ from: 3200, q: 1.2, gain: 0.03, attack: 0.001, decay: 0.025 });
     },
 
     start() {
@@ -187,12 +195,20 @@
   window.gardenSound = sound;
 
   // 버튼에 마우스를 올리면 (들어올 때 한 번)
-  const HOVER = ".start-button, .opening-skip, .opening-sound, #finishButton, .save-button, .back-button, .folder-tab, .dialog-button";
+  const HOVER = ".start-button, .opening-skip, .opening-sound, #finishButton, .save-button, .back-button, .folder-tab, .dialog-button, .tool, .layers-group, .filter-arrow, .filter-track button";
   document.addEventListener("pointerover", (event) => {
     if (event.pointerType === "touch") return;
     const button = event.target.closest?.(HOVER);
     if (!button || button.disabled || button.contains(event.relatedTarget)) return;
     if (button.matches(".start-button")) sound.startHover();
     else sound.hover();
+  });
+
+  // 버튼을 누르면 (START는 따로 정한 소리가 있음)
+  document.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    const button = event.target.closest?.(HOVER);
+    if (!button || button.disabled || button.matches(".start-button")) return;
+    sound.click();
   });
 })();

@@ -102,14 +102,14 @@ body {
 
   display: flex;
   flex-direction: column;
-  gap: clamp(12px, 1.6vw, 18px);
+  gap: clamp(13px, 1.75vw, 21px);
 
   pointer-events: none;
 }
 
 .intro-info p {
   margin: 0;
-  font-size: clamp(11px, 1.05vw, 14px);
+  font-size: clamp(13px, 1.32vw, 18px);
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.01em;
@@ -565,6 +565,18 @@ body.is-assembling .glass,
 body.is-assembling .intro-info,
 body.is-assembling .start-button {
   opacity: 0;
+}
+
+/* 화면 가득 깔릴 때는 모서리 없는 사각형 → 글자 자리로 모이며 둥글어짐 (끝나면 애플 아이콘 모양 마스크로) */
+body.is-assembling .garden-tile .tile-image {
+  -webkit-mask: none;
+  mask: none;
+  border-radius: 0;
+}
+
+body.is-assembling.is-gathering .garden-tile .tile-image {
+  border-radius: 23%;
+  transition: border-radius 1500ms cubic-bezier(0.65, 0, 0.35, 1) 250ms;
 }
 
 body.is-assembling.is-gathering .garden-panel {
