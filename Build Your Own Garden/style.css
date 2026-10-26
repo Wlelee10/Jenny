@@ -568,7 +568,7 @@ body.is-falling .glass {
 .gate-foot {
   position: relative;
   height: calc(var(--k) * 0.0237);
-  margin: calc(var(--k) * 0.009) 0 0; /* 글보다 조금 더 아래 */
+  margin: calc(var(--k) * 0.02) 0 0; /* 글보다 더 아래 */
 }
 
 
