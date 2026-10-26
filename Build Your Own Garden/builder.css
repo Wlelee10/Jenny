@@ -1310,10 +1310,13 @@
   background: rgba(134, 189, 255, 0.3);
 }
 
+/* 끌고 있는 줄: 선택된 파란색 그대로 + 또렷한 그림자로 손을 따라오는 게 잘 보이게 */
 .layer-row.is-dragging {
-  z-index: 1;
-  background: #ffffff;
-  box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+  background: #d6e8ff;
+  box-shadow:
+    0 0 0 1px rgba(80, 150, 240, 0.45),
+    0 10px 22px -8px rgba(0, 0, 0, 0.35);
   transition: none;
 }
 

@@ -452,6 +452,15 @@
     aiLibraryGrid.appendChild(fragment);
   }
 
+  // 설명 한 줄 (문자열, 또는 { text, kind } — kind: title · by · meta)
+  // 제목과 이름은 사용자 입력 → 글자로만 넣음
+  function captionLine(line) {
+    const row = document.createElement("span");
+    row.textContent = typeof line === "string" ? line : line.text;
+    if (line.kind) row.className = `caption-${line.kind}`;
+    return row;
+  }
+
   function makeCard({ src, full, alt, lines, id, lazy = true }) {
     const card = document.createElement("figure");
     card.className = "card";
@@ -471,11 +480,7 @@
     if (image.complete && image.naturalWidth) card.classList.add("is-loaded");
 
     const caption = document.createElement("figcaption");
-    lines.forEach((line) => {
-      const row = document.createElement("span");
-      row.textContent = line; // 제목은 사용자 입력 → 글자로만 넣음
-      caption.appendChild(row);
-    });
+    caption.append(...lines.map(captionLine));
 
     frame.appendChild(image);
     card.append(frame, caption);
@@ -596,13 +601,14 @@
         src: entry.image,
         alt: entry.title,
         lazy: false,
+        // 제목(굵고 크게) / Created by 이름 / 사용 개수 – 걸린 시간
         lines: [
-          entry.title,
-          ...(entry.creator ? [`by ${entry.creator}`] : []),
-          `${entry.fragments} /200 fragments`,
-          formatTime(entry.seconds)
+          { text: entry.title, kind: "title" },
+          ...(entry.creator ? [{ text: `Created by ${entry.creator}`, kind: "by" }] : []),
+          { text: `${entry.fragments} /200 fragments – ${formatTime(entry.seconds)}`, kind: "meta" }
         ]
       });
+      card.classList.add("card-human");
       card.querySelector("figcaption").appendChild(makeLikeButton(entry.id));
       if (savedEntry && entry.id === savedEntry.id) card.classList.add("is-mine");
       galleryGrid.appendChild(card);
@@ -647,11 +653,8 @@
       sharp.src = full;
     }
     viewerImage.dataset.want = full ?? "";
-    viewerCaption.replaceChildren(...lines.map((line) => {
-      const row = document.createElement("span");
-      row.textContent = line;
-      return row;
-    }));
+    viewerCaption.replaceChildren(...lines.map(captionLine));
+    viewerCaption.classList.toggle("is-human", lines.some((line) => line.kind));
     viewerLikeSlot.replaceChildren();
     if (viewerGrid === galleryGrid && card.dataset.id) {
       viewerLikeSlot.appendChild(makeLikeButton(card.dataset.id));
