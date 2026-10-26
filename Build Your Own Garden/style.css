@@ -537,6 +537,48 @@ body.is-opening .world {
   opacity: 0;
 }
 
+/* 흰 화면에서 BGM만 남은 뒤: 영상은 투명하게 숨기고(소리는 계속) 아래 페이지가 보이게 */
+.opening.is-listening {
+  background: transparent;
+  pointer-events: none;
+}
+
+.opening.is-listening .opening-video {
+  opacity: 0;
+}
+
+.opening.is-listening .opening-controls {
+  pointer-events: auto;
+}
+
+/* ASSEMBLY: 이미지가 먼저 깔리고, 판 · 유리 · 글자는 나중에 생김 */
+body.is-assembling .world {
+  transition: none;
+}
+
+body.is-assembling .garden-panel {
+  background-color: transparent;
+  pointer-events: none;
+}
+
+body.is-assembling .glass,
+body.is-assembling .intro-info,
+body.is-assembling .start-button {
+  opacity: 0;
+}
+
+body.is-assembling.is-gathering .garden-panel {
+  background-color: #f4f4f4;
+  transition: background-color 1400ms cubic-bezier(0.33, 0, 0.2, 1);
+}
+
+body.is-assembling.is-gathering .glass,
+body.is-assembling.is-gathering .intro-info,
+body.is-assembling.is-gathering .start-button {
+  opacity: 1;
+  transition: opacity 1400ms cubic-bezier(0.33, 0, 0.2, 1) 200ms;
+}
+
 .world {
   transition: opacity 1800ms cubic-bezier(0.33, 0, 0.2, 1);
 }

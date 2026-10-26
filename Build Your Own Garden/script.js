@@ -16,7 +16,9 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 /* =========================================
    OPENING
-   영상이 끝나면(흰 화면) 같은 흰 배경 위로 첫 페이지가 페이드인
+   영상은 22초 07프레임부터 흰 화면 + BGM만 남음
+   → 그 순간 영상은 화면에서 사라지고(BGM은 계속) 실제 페이지에서
+     200장의 이미지가 화면 가득 깔렸다가 글자 자리로 모이며 첫 페이지가 됨 (ASSEMBLY)
    소리 있는 자동 재생이 막히면 소리 없이 재생 + [ SOUND ON ]
 ========================================= */
 
@@ -26,19 +28,38 @@ const openingSound = document.querySelector("#openingSound");
 const openingPlay = document.querySelector("#openingPlay");
 const openingSkip = document.querySelector("#openingSkip");
 
+const ASSEMBLE_AT = (22 * 24 + 7) * 1001 / 24000; // 22초 07프레임 (23.976fps) ≈ 22.314초
+let assemblyStarted = false;
+
+// 흰 화면이 시작되는 순간: 영상은 숨기고 BGM은 그대로 흐르게 둔 채 첫 페이지를 만들기 시작
+function beginAssembly() {
+  if (assemblyStarted) return;
+  assemblyStarted = true;
+  opening?.classList.add("is-listening");
+  if (openingSkip) openingSkip.hidden = true;
+  if (openingPlay) openingPlay.hidden = true;
+  assembleIntro();
+}
+
+// 영상을 쓸 수 없거나(오류 · 재생 막힘에서 건너뛰기) 다 끝났을 때
 function endOpening() {
-  if (!document.body.classList.contains("is-opening")) return;
+  if (!assemblyStarted) {
+    openingVideo?.pause();
+    if (opening) opening.hidden = true;
+    beginAssembly();
+  }
+  // BGM까지 끝났으면 영상 층을 치움
+  if (!openingVideo || openingVideo.paused || openingVideo.ended) opening?.remove();
+}
 
-  openingVideo?.pause();
-  if (opening) opening.hidden = true;
-
-  // 한 프레임 뒤에 풀어야 페이드인이 보임
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      document.body.classList.remove("is-opening");
-      opening?.remove();
-    });
-  });
+// 영상 시간이 22초 07프레임에 닿는 순간을 프레임 단위로 지켜봄
+function watchOpening() {
+  if (assemblyStarted || !openingVideo) return;
+  if (openingVideo.currentTime >= ASSEMBLE_AT - 0.01) {
+    beginAssembly();
+    return;
+  }
+  requestAnimationFrame(watchOpening);
 }
 
 function unmuteOpening() {
@@ -72,7 +93,7 @@ function showPlayIfStopped() {
 
 async function playOpening() {
   if (!opening || !openingVideo) {
-    endOpening();
+    requestAnimationFrame(endOpening);
     return;
   }
 
@@ -81,10 +102,15 @@ async function playOpening() {
   openingVideo.addEventListener("error", endOpening);
   opening.addEventListener("click", unmuteOpening);
 
-  // [ SKIP ] → 영상을 건너뛰고 바로 첫 타이틀 페이지로
+  // [ SKIP ] → 영상의 흰 화면(BGM) 부분으로 건너뛰고 바로 첫 페이지 만들기 시작
   openingSkip?.addEventListener("click", (event) => {
     event.stopPropagation();
-    endOpening();
+    if (!openingVideo.paused && openingVideo.duration > ASSEMBLE_AT) {
+      openingVideo.currentTime = ASSEMBLE_AT;
+      beginAssembly();
+    } else {
+      endOpening();
+    }
   });
 
   // 실제로 재생되기 시작하면: PLAY는 숨기고, 소리가 꺼져 있으면 SOUND ON
@@ -117,6 +143,7 @@ async function playOpening() {
   }
 
   setTimeout(showPlayIfStopped, 1500);
+  requestAnimationFrame(watchOpening);
 }
 
 playOpening();
@@ -440,6 +467,7 @@ fragmentLayer.appendChild(fragmentFragment);
 ========================================= */
 
 let isFalling = false;
+let isAssembling = false;
 const tiles = [...grid.children];
 
 function clamp(value, minimum, maximum) {
@@ -479,7 +507,7 @@ function setActiveTile(tile) {
 }
 
 panel.addEventListener("pointermove", (event) => {
-  if (isFalling) return;
+  if (isFalling || isAssembling) return;
 
   const panelRect = panel.getBoundingClientRect();
   parallax.tx = clamp(((event.clientX - panelRect.left) / panelRect.width - 0.5) * 2, -1, 1);
@@ -573,6 +601,99 @@ animateGlass();
 
 
 /* =========================================
+   ASSEMBLY (오프닝 영상의 흰 화면에서 첫 페이지로)
+   1. 흰 화면 위로 200장이 화면 가득 격자로 촤라락 깔림 (왼쪽 위 → 오른쪽 아래 물결)
+   2. 회색 판 · 유리 · 글자가 서서히 생기고, 동시에 이미지들이 BUILD YOUR OWN GARDEN 글자 자리로 이동
+========================================= */
+
+const SPREAD_WAVE = 900;      // ms. 깔리는 물결이 화면을 가로지르는 시간
+const SPREAD_EACH = 520;      // ms. 한 장이 나타나는 시간
+const SPREAD_HOLD = 300;      // ms. 다 깔린 뒤 잠깐 머묾
+const GATHER_EACH = 1350;     // ms. 한 장이 글자 자리로 가는 시간
+const GATHER_SPREAD = 450;    // ms. 출발 시간의 차이 (가까운 것부터)
+
+function assembleIntro() {
+  const body = document.body;
+  body.classList.add("is-assembling");
+  body.classList.remove("is-opening");
+
+  if (reduceMotion.matches) {
+    body.classList.remove("is-assembling");
+    return;
+  }
+
+  isAssembling = true;
+  setActiveTile(null);
+  fitGrid();
+
+  // 화면을 빈칸 없이 꽉 채우는 격자: 200을 나누어 떨어지는 가로×세로 중 칸이 가장 정사각형에 가까운 것
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const count = tiles.length;
+  let cols = 1;
+  let best = Infinity;
+  for (let c = 1; c <= count; c++) {
+    if (count % c) continue;
+    const r = count / c;
+    const off = Math.abs(Math.log((vw / c) / (vh / r)));
+    if (off < best) {
+      best = off;
+      cols = c;
+    }
+  }
+  const rows = count / cols;
+  const cellW = vw / cols;
+  const cellH = vh / rows;
+  const size = Math.min(cellW, cellH) * 0.92;
+
+  const plans = tiles.map((tile, index) => {
+    const rect = tile.getBoundingClientRect(); // 글자 속 자리
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const x = (col + 0.5) * cellW - (rect.left + rect.width / 2);
+    const y = (row + 0.5) * cellH - (rect.top + rect.height / 2);
+    const scale = size / rect.width;
+    return {
+      tile,
+      from: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${scale.toFixed(4)})`,
+      appear: ((col / cols + row / rows) / 2) * SPREAD_WAVE + Math.random() * 70,
+      distance: Math.hypot(x, y)
+    };
+  });
+
+  const gatherAt = SPREAD_WAVE + SPREAD_EACH + SPREAD_HOLD;
+  const far = Math.max(...plans.map((plan) => plan.distance), 1);
+
+  plans.forEach((plan) => {
+    // 1. 그 자리에서 살짝 커지며 나타남 (안쪽 이미지 층에서 — 위치는 2번 애니메이션이 잡고 있음)
+    plan.tile.firstElementChild.animate(
+      [{ opacity: 0, transform: "scale(0.55)" }, { opacity: 1, transform: "none" }],
+      { duration: SPREAD_EACH, delay: plan.appear, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "backwards" }
+    );
+    // 2. 화면 격자 자리 → 글자 자리 (가까운 것부터 출발)
+    plan.tile.animate(
+      [{ transform: plan.from }, { transform: "none" }],
+      {
+        duration: GATHER_EACH,
+        delay: gatherAt + (plan.distance / far) * GATHER_SPREAD,
+        easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+        fill: "backwards"
+      }
+    );
+  });
+
+  // 이미지들이 움직이기 시작할 때 판 · 유리 · 글자가 생김
+  setTimeout(() => body.classList.add("is-gathering"), gatherAt);
+
+  setTimeout(() => {
+    tiles.forEach((tile) => tile.getAnimations({ subtree: true }).forEach((animation) => animation.cancel()));
+    body.classList.remove("is-assembling", "is-gathering");
+    isAssembling = false;
+  }, gatherAt + GATHER_SPREAD + GATHER_EACH + 120);
+}
+
+
+/* =========================================
    COLLAPSE
    [ START ] → 이미지가 무너져 떨어지고 카메라가 따라 내려감
    → 투명한 선을 통과할 때마다 번쩍
@@ -592,7 +713,7 @@ const REPOSE = 0.45;            // 더미가 버티는 경사 (클수록 뾰족�
 const ROLL_SPEED = 260;         // 더미를 타고 굴러 내려가는 속도(px/s)
 
 startButton.addEventListener("click", () => {
-  if (isFalling) return;
+  if (isFalling || isAssembling) return;
   window.gardenSound?.start();
 
   startCollapse();
