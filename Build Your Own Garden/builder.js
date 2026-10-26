@@ -2009,10 +2009,17 @@
       .map((entry, j) => (entry.uids.every((uid) => selection.has(uid)) ? j : -1))
       .filter((j) => j >= 0);
     const rect = element.getBoundingClientRect();
+    // 누른 순간부터 이 줄이 포인터를 붙잡음 (사파리: 선택이 바뀌며 다시 그려져도 끌기가 끊기지 않게)
+    try {
+      element.setPointerCapture(event.pointerId);
+    } catch {
+      // 지원하지 않으면 그냥 전역 포인터로
+    }
     layerDrag = {
       row,
       block,
-      grip: block.indexOf(layerRows.indexOf(row)), // 끌고 있는 줄이 묶음에서 몇 번째인지
+      // 끌고 있는 줄이 묶음에서 몇 번째인지 (선택이 바뀌며 목록이 새로 만들어졌을 수 있으니 key로 찾음)
+      grip: Math.max(0, block.indexOf(layerRows.findIndex((entry) => entry.key === row.key))),
       startY: event.clientY,
       lastY: event.clientY,
       startScroll: layersList.scrollTop,
@@ -2904,7 +2911,24 @@
   }
 
   window.addEventListener("pointerup", pointerEnd);
-  window.addEventListener("pointercancel", pointerEnd);
+  // 사파리는 누르자마자 끌면 기본 끌기로 착각해 pointercancel을 보내기도 함
+  // → 레이어 끌기 중이면 끝내지 않고 마우스 움직임으로 계속 따라감
+  window.addEventListener("pointercancel", () => {
+    if (layerDrag) return;
+    pointerEnd();
+  });
+  window.addEventListener("mousemove", (event) => {
+    if (layerDrag && !press && !drag && !action) moveLayerDrag(event);
+  });
+  window.addEventListener("mouseup", () => {
+    if (layerDrag) endLayerDrag();
+  });
+
+  // 레이어 패널에서는 브라우저 기본 끌기(글자 · 썸네일 끌기)를 하지 않음
+  layersList.addEventListener("dragstart", (event) => event.preventDefault());
+  layersList.addEventListener("mousedown", (event) => {
+    if (event.target.closest(".layer-row") && !event.target.closest("input")) event.preventDefault();
+  });
 
   // 마지막으로 누른 곳이 레이어 패널인지 기억 (Enter = 이름 바꾸기)
   window.addEventListener("pointerdown", (event) => {
