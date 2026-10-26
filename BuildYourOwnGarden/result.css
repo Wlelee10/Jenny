@@ -95,6 +95,47 @@
   transition: opacity 300ms ease;
 }
 
+/* BUILD ANOTHER GARDEN: 흰 화면 + 0과 1로 된 원이 돌다가, 빈 캔버스가 준비되면 걷힘 */
+.another-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  opacity: 0;
+  transition: opacity 280ms ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.another-loading.is-visible {
+  opacity: 1;
+}
+
+.another-loading.is-leaving {
+  opacity: 0;
+  transition-duration: 450ms;
+}
+
+.another-ring {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  animation: loader-spin 2.8s linear infinite;
+}
+
+.another-ring span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: #d4d4d4;
+}
+
 /* 빌더가 다시 나타남 */
 .builder.is-returning {
   transition: opacity 600ms ease;
@@ -490,6 +531,7 @@
 
 .save-button:hover:not(:disabled) {
   border-color: #111111;
+  color: #111111;
 }
 
 .save-button:disabled {

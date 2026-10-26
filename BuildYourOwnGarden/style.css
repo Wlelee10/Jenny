@@ -39,7 +39,7 @@ body {
   height: 100%;
   background: var(--page-bg);
   color: var(--ink);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter Tight", Arial, Helvetica, sans-serif;
 }
 
 body {
@@ -534,7 +534,7 @@ body.is-falling .glass {
   z-index: 1;
   transform: translate(-50%, -50%);
   text-align: center;
-  font-family: "Inter", Arial, Helvetica, sans-serif;
+  font-family: "Inter Tight", Arial, Helvetica, sans-serif;
 }
 
 .gate-copy > * {
@@ -552,12 +552,21 @@ body.is-falling .glass {
 
 .gate-title {
   /* 본문 줄 간격의 위쪽 여백만큼 더해서, 눈에 보이는 간격이 문단 사이와 같도록 */
-  margin: 0 0 calc(var(--space) + var(--k) * 0.0068 * 0.42);
+  margin: 0 0 calc(var(--space) + var(--k) * 0.0076 * 0.42);
   color: var(--red, #b3141e);
   font-size: calc(var(--k) * 0.0196);
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.1;
+}
+
+/* 본문 글자: 마우스 근처는 빨갛게 바뀌었다가 멀어지면 천천히 검정으로 */
+.gate-letter {
+  transition: color 900ms ease;
+}
+.gate-letter.is-hot {
+  color: var(--red, #b3141e);
+  transition-duration: 90ms;
 }
 
 .gate-text {
@@ -567,7 +576,7 @@ body.is-falling .glass {
   gap: 0;
   margin: 0 0 var(--space);
   color: var(--ink);
-  font-size: calc(var(--k) * 0.0068);
+  font-size: calc(var(--k) * 0.0076);
   line-height: 1.85;
   white-space: nowrap;
 }
@@ -768,7 +777,7 @@ body.is-falling .glass {
   backdrop-filter: blur(6px);
 
   color: var(--ink);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter Tight", Arial, Helvetica, sans-serif;
   font-size: 11px;
   font-weight: 400;
   line-height: 28px;

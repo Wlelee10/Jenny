@@ -392,30 +392,86 @@
      저장한 뒤: 빈 캔버스의 빌더로 바로 돌아가 새 정원을 만듦 (조각은 라이브러리에 그대로)
   ========================================= */
 
-  function buildAnother() {
-    if (!finished || result.classList.contains("is-returning")) return;
+  // 흰 화면에 0과 1로 된 원이 도는 로딩 (첫 화면의 로딩 원과 같은 모양)
+  function showAnotherLoading() {
+    const overlay = document.createElement("div");
+    overlay.className = "another-loading";
+    overlay.setAttribute("role", "progressbar");
+    overlay.setAttribute("aria-label", "Loading");
+    const ring = document.createElement("div");
+    ring.className = "another-ring";
+    const RING = 18;
+    const chars = [];
+    for (let i = 0; i < RING; i++) {
+      const span = document.createElement("span");
+      const angle = (i / RING) * 360;
+      span.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-19px) rotate(${-angle}deg)`;
+      span.textContent = Math.random() < 0.5 ? "0" : "1";
+      ring.appendChild(span);
+      chars.push(span);
+    }
+    overlay.appendChild(ring);
+    document.body.appendChild(overlay);
+
+    // 진한 글자가 원을 따라 옮겨 가고 뒤로 옅어지는 꼬리
+    let head = 0;
+    const timer = setInterval(() => {
+      head = (head + 1) % RING;
+      chars.forEach((span, i) => {
+        const t = ((head - i + RING) % RING) / (RING - 1);
+        const shade = Math.round(17 + (215 - 17) * Math.min(1, t * 1.25));
+        span.style.color = `rgb(${shade}, ${shade}, ${shade})`;
+      });
+      if (Math.random() < 0.35) {
+        const span = chars[Math.floor(Math.random() * RING)];
+        span.textContent = span.textContent === "0" ? "1" : "0";
+      }
+    }, 70);
+
+    overlay.offsetWidth;
+    overlay.classList.add("is-visible");
+    return {
+      hide(quick) {
+        overlay.classList.add("is-leaving");
+        setTimeout(() => {
+          clearInterval(timer);
+          overlay.remove();
+        }, quick ? 0 : 460);
+      }
+    };
+  }
+
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  let buildingAnother = false;
+
+  async function buildAnother() {
+    if (!finished || buildingAnother || result.classList.contains("is-returning")) return;
+    buildingAnother = true;
     const builder = finished.builder;
     const quick = reduceMotion.matches;
 
+    // 1. 로딩 화면이 먼저 다 덮음 (저장한 정원 이미지가 남아 보이지 않게)
+    const loading = showAnotherLoading();
+    const shownAt = performance.now();
+    await wait(quick ? 0 : 300);
+
+    // 2. 덮인 뒤에서: 결과 화면을 치우고 빌더를 빈 캔버스로
     closeDialog();
     if (!viewer.hidden) closeViewer();
     stopGallery();
-
-    // 빌더를 빈 캔버스로 되돌려 보이게 하고, 결과 화면은 서서히 사라짐
     clearTimeout(hideBuilderTimer);
-    document.dispatchEvent(new CustomEvent("garden:new"));
+    result.hidden = true;
+    resetResult();
     builder.hidden = false;
-    builder.classList.add("is-returning");
-    builder.offsetWidth;
     builder.classList.remove("is-leaving");
+    document.dispatchEvent(new CustomEvent("garden:new"));
 
-    result.classList.add("is-returning");
-    setTimeout(() => {
-      result.hidden = true;
-      result.classList.remove("is-returning");
-      builder.classList.remove("is-returning");
-      resetResult();
-    }, quick ? 0 : 650);
+    // 3. 화면이 다 그려지고, 로딩이 너무 짧게 깜빡이지 않도록 조금 기다렸다가 걷음
+    await nextFrame();
+    await wait(Math.max(0, (quick ? 300 : 1100) - (performance.now() - shownAt)));
+    loading.hide(quick);
+    buildingAnother = false;
   }
 
   // 다음 정원을 위해 결과 화면을 처음 상태로
@@ -867,6 +923,8 @@
     fitField(titleInput);
     fitField(creatorInput);
   };
+  // 폰트(Inter Tight)가 다 받아지면 글자 폭이 바뀌므로 다시 맞춤
+  document.fonts?.ready.then(fitTitle);
 
   function markTitle() {
     titleField.classList.toggle("is-empty", !titleInput.value.trim());

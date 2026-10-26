@@ -282,6 +282,7 @@ const GATE_EXIT_MS = 1500;  // 시작을 누른 뒤: 글이 사라지고 손이 
 const RIPPLE_RADIUS = 0.05; // 클릭 물결이 닿는 반경 (손 크기 k의 몇 배) — 클릭한 손 안에서만
 const RIPPLE_SPEED = 0.1;   // 클릭 물결이 퍼지는 속도 (1초에 손 크기 k의 몇 배)
 const TRAIL_LIFE_MS = 900;  // 마우스 궤적의 0 · 1 이 사라지기까지
+const LETTER_REACH = 0.018; // 본문 글자가 빨개지는 마우스 둘레 (손 크기 k의 몇 배)
 const PRESS_LIFE = 2.6;     // 빈 곳을 눌렀을 때 그 둘레 0 · 1 은 평소의 몇 배 오래 남는지
 const PRESS_RADIUS = 0.028; // 누른 곳 둘레 (손 크기 k의 몇 배)
 const PRESS_RATE = 45;      // 누르고 있는 동안 1초에 생기는 0 · 1 수
@@ -510,6 +511,42 @@ function spawnPressBit(cx, cy, now) {
   if (gateScene.trail.length > 400) gateScene.trail.splice(0, gateScene.trail.length - 400);
 }
 
+/* 본문 글자: 한 글자씩 나눠 두고, 마우스 근처 글자만 빨갛게 (손 위 0 · 1 처럼) */
+const gateLetters = [];
+document.querySelectorAll(".gate-text > span").forEach((line) => {
+  const text = line.textContent;
+  line.setAttribute("aria-label", text);
+  line.textContent = "";
+  for (const char of text) {
+    if (char === " ") {
+      line.append(" ");
+      continue;
+    }
+    const letter = document.createElement("span");
+    letter.className = "gate-letter";
+    letter.setAttribute("aria-hidden", "true");
+    letter.textContent = char;
+    line.appendChild(letter);
+    gateLetters.push(letter);
+  }
+});
+
+let letterFrame = 0;
+function heatLetters(x, y) {
+  cancelAnimationFrame(letterFrame);
+  letterFrame = requestAnimationFrame(() => {
+    const reach = LETTER_REACH * (gateScene.k || window.innerWidth);
+    for (const letter of gateLetters) {
+      let hot = false;
+      if (x !== null) {
+        const rect = letter.getBoundingClientRect();
+        hot = Math.hypot(rect.left + rect.width / 2 - x, rect.top + rect.height / 2 - y) < reach;
+      }
+      if (hot !== letter.classList.contains("is-hot")) letter.classList.toggle("is-hot", hot);
+    }
+  });
+}
+
 // 이 위치가 어느 손(점) 위인지: 0 왼손, 1 오른손, -1 손 밖
 function handAt(x, y) {
   const scene = gateScene;
@@ -532,6 +569,7 @@ gateLayer?.addEventListener("pointermove", (event) => {
   const onButton = !!event.target.closest("button");
   const overHand = !onButton && handAt(x, y) >= 0;
   gateLayer.classList.toggle("is-over-hand", overHand);
+  heatLetters(gateScene.exitAt ? null : x, y);
   // 누른 채로 움직이면 쌓이는 곳도 따라감 (손 · 버튼 위로 가면 멈춤)
   if (gateScene.press) gateScene.press = overHand || onButton ? null : { x, y };
   // 손이 없는 곳: 지나간 길을 따라 일정 간격으로 0 · 1 을 남김
@@ -577,6 +615,7 @@ gateLayer?.addEventListener("pointerleave", () => {
   gateScene.trailFrom = null;
   gateScene.press = null;
   gateLayer.classList.remove("is-over-hand");
+  heatLetters(null, 0);
   wakeGate();
 });
 // 손을 클릭(터치)하면 그 자리에서 물결이 퍼짐
