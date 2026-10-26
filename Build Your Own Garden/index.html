@@ -19,16 +19,18 @@
     <!-- 소리 있는 자동 재생이 막힌 브라우저(사파리 등): 한 번 누르면 소리와 함께 시작 -->
     <!-- 시작 전 소개글: 읽는 동안 영상 · 이미지를 준비하고, 다 되면 시작 버튼이 나타남 -->
     <div class="opening-gate" id="openingGate">
+      <!-- 양쪽에서 서로를 향해 뻗는 두 손 (점으로 그림) -->
+      <canvas class="gate-art" id="gateArt" aria-hidden="true"></canvas>
       <div class="gate-copy">
-        <p class="gate-title">What is AI to you?</p>
-        <p class="gate-text">It can generate countless possibilities in a very short time.<br>
+        <p class="gate-title">What is AI to YOU ?</p>
+        <p class="gate-text gate-soft">It can generate countless possibilities in a very short time.<br>
           But what you choose, what you discard, and how you combine them is still up to you.</p>
-        <p class="gate-text">Here, you will find countless gardens created by AI.<br>
+        <p class="gate-text gate-strong">Here, you will find countless gardens created by AI.<br>
           Choose what speaks to you, and decide how you will cultivate a garden of your own.</p>
         <div class="gate-foot">
-          <!-- 준비되는 만큼 차오르는 얇은 선 -->
+          <!-- 준비되는 만큼 차오르는 얇은 선 → 다 되면 그 자리에 버튼 -->
           <div class="opening-loader is-visible" id="openingLoader" aria-hidden="true"><i></i></div>
-          <button class="gate-enter" id="openingEnter" type="button" hidden>[ Click to show your creativity ]</button>
+          <button class="gate-enter" id="openingEnter" type="button" hidden>Show your Creativity</button>
         </div>
       </div>
     </div>
