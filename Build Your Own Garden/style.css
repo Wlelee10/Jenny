@@ -514,7 +514,7 @@ body.is-falling .glass {
 /* 글 · 버튼: 화면 가운데 정렬 덩어리. 크기는 손 크기(--k: JS가 정함)에 비례 */
 .gate-copy {
   --k: 1500px;
-  --space: calc(var(--k) * 0.0155); /* 제목 · 첫 문단 · 둘째 문단 · 버튼 사이 같은 간격 */
+  --space: calc(var(--k) * 0.0115); /* 제목 · 첫 문단 · 둘째 문단 · 버튼 사이 같은 간격 */
 
   position: absolute;
   left: 50%;
