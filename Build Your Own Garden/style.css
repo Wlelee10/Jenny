@@ -513,11 +513,11 @@ body.is-falling .glass {
 .gate-copy {
   position: relative;
   z-index: 1;
-  padding: 18px 28px;
-  /* 점 그림 위에서도 글자가 잘 읽히도록 아주 옅은 흰 배경 */
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.75) 70%, rgba(255, 255, 255, 0));
-  width: min(760px, 100%);
-  margin-top: -6vh;
+  /* 작은 창에서 손과 겹쳐도 글자가 잘 읽히도록 흰 테두리 빛 */
+  text-shadow: 0 0 6px #ffffff, 0 0 12px #ffffff, 0 0 18px #ffffff;
+  padding: 0;
+  width: min(640px, 100%);
+  margin-top: 0;
   text-align: center;
 }
 
