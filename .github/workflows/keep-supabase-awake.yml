@@ -16,7 +16,7 @@ jobs:
 
       - name: Read the gallery once
         run: |
-          CONFIG="Build Your Own Garden/config.js"
+          CONFIG="BuildYourOwnGarden/config.js"
           URL=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' "$CONFIG" | head -1)
           KEY=$(grep -oE 'key: "[^"]+"' "$CONFIG" | head -1 | sed -E 's/key: "(.*)"/\1/')
           curl -fsS --retry 3 --retry-delay 10 \
