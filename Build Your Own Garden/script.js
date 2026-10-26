@@ -193,106 +193,140 @@ async function playOpening() {
     paintSound();
   });
 
-  // 소리와 함께 재생 시도 — 브라우저가 막으면(사파리 등) [ CLICK TO ENTER ]
-  // 한 번 누르면 그 순간 영상이 처음부터 소리와 함께 재생됨
-  const enter = () => {
-    if (!opening.classList.contains("is-gated") || !gateReady) return;
+  /* ---------- 시작 준비 ----------
+     모든 브라우저: 처음엔 LOADING. 아래가 다 끝나야 시작
+       1. 영상 앞부분(바로 재생할 만큼)
+       2. 인트로 이미지 200장 + 조각 이미지 200장 (받고 미리 풀어 둠)
+       3. 인트로 유리 효과를 화면 뒤에서 미리 한 번 그려 봄 (사파리의 첫 호버가 느린 것 방지)
+     → 소리 있는 자동 재생이 되는 브라우저는 바로 시작, 아니면 [ CLICK TO ENTER ] (누르면 즉시 시작) */
+
+  const gateLabel = document.querySelector("#openingGateLabel");
+  const openingLoader = document.querySelector("#openingLoader");
+  const READY_AHEAD = 2.5;
+  const PREPARE_LIMIT = 20000; // 아주 느린 연결이어도 20초 뒤에는 시작할 수 있게
+  const preparedAt = performance.now();
+  let suspended = false;  // 브라우저가 충분히 받았다고 보고 잠시 멈춤
+  let waiting = true;     // 재생 중 받는 것을 기다리는지
+  let started = false;    // 영상이 소리와 함께 시작됨
+  let gateReady = false;  // [ CLICK TO ENTER ] 상태
+  let warm = "no";        // 유리 미리 그리기: no → running → done
+
+  opening.classList.add("is-gated");
+  openingGate.hidden = false;
+  openingSound.hidden = true;
+
+  const hideGate = () => {
     opening.classList.remove("is-gated");
     openingGate.hidden = true;
     openingSound.hidden = false;
-    openingVideo.muted = soundOffByUser;
-    try {
-      openingVideo.currentTime = 0;
-    } catch {
-      // 아직 준비 중이면 처음부터 재생됨
-    }
-    openingVideo.play().catch(() => {
-      // 클릭해도 재생할 수 없으면(파일 문제 등) 첫 페이지로
-      endOpening();
-    });
     paintSound();
   };
-  openingGate.addEventListener("click", (event) => {
-    event.stopPropagation();
-    enter();
-  });
 
-  // 입장 화면: 영상이 바로 재생할 만큼 받아질 때까지 LOADING → 다 되면 [ CLICK TO ENTER ]
-  const gateLabel = document.querySelector("#openingGateLabel");
-  let gateReady = false;
-  const readyGate = () => {
-    if (gateReady) return;
+  const showEnter = () => {
     gateReady = true;
     if (gateLabel) gateLabel.textContent = "[ CLICK TO ENTER ]";
     openingGate.classList.add("is-ready");
     openingGate.setAttribute("aria-label", "Click to enter");
   };
 
-  // 로딩바: 입장 화면에서는 바로 재생할 수 있을 만큼(앞 2.5초) 받아질 때까지 차오르고,
-  // 재생 중 멈춰 기다릴 때만 다시 보임
-  const openingLoader = document.querySelector("#openingLoader");
-  const READY_AHEAD = 2.5;
-  let suspended = false; // 브라우저가 충분히 받았다고 보고 잠시 멈춤
-  let waiting = true; // 첫 화면이 그려지기 전까지는 기다리는 중
-  const paintLoader = () => {
-    if (!openingLoader || !opening.isConnected) return;
+  // 처음부터 재생 (gesture: 사용자가 누른 순간인지)
+  const startVideo = async (gesture) => {
+    if (started || assemblyStarted) return;
+    openingVideo.muted = gesture ? soundOffByUser : false;
+    try {
+      openingVideo.currentTime = 0;
+    } catch {
+      // 아직 준비 중이면 처음부터 재생됨
+    }
+    try {
+      await openingVideo.play();
+      started = true;
+      hideGate();
+    } catch {
+      openingVideo.pause();
+      if (gesture) endOpening();  // 눌러도 재생할 수 없으면(파일 문제 등) 첫 페이지로
+      else showEnter();           // 소리 있는 자동 재생이 막힘 → 클릭해서 시작
+    }
+  };
+
+  openingGate.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (gateReady) startVideo(true);
+  });
+
+  const videoProgress = () => {
+    if (suspended || openingVideo.readyState >= 4) return 1;
     let ahead = 0;
     const { buffered, currentTime, duration } = openingVideo;
     for (let i = 0; i < buffered.length; i++) {
       if (buffered.start(i) <= currentTime + 0.1 && buffered.end(i) > currentTime) ahead = buffered.end(i) - currentTime;
     }
     const target = Math.min(READY_AHEAD, (duration || READY_AHEAD) - currentTime);
-    const ready = suspended || openingVideo.readyState >= 4;
-    const progress = ready ? 1 : Math.min(1, target > 0 ? ahead / target : 1);
-    openingLoader.style.setProperty("--progress", progress.toFixed(3));
-    const gated = opening.classList.contains("is-gated");
-    if (gated && progress >= 1) readyGate();
-    const show = !assemblyStarted && (gated ? progress < 1 : waiting);
-    openingLoader.classList.toggle("is-visible", show);
+    return Math.min(1, target > 0 ? ahead / target : 1);
   };
-  ["progress", "loadedmetadata", "loadeddata", "canplay", "canplaythrough", "timeupdate"].forEach((type) => {
-    openingVideo.addEventListener(type, paintLoader);
+
+  const imageProgress = () => {
+    // 인트로 글자 이미지만 기다림 (조각 이미지는 START 뒤에 필요해서 영상이 나오는 동안 뒤에서 받음)
+    const images = document.querySelectorAll("#gardenGrid img");
+    if (!images.length) return 0;
+    let done = 0;
+    images.forEach((image) => {
+      if (image.complete && image.naturalWidth) done++;
+    });
+    return done / images.length;
+  };
+
+  const prepare = () => {
+    if (!opening.isConnected || assemblyStarted) return;
+    const video = videoProgress();
+    const images = imageProgress();
+    const timedOut = performance.now() - preparedAt > PREPARE_LIMIT;
+
+    // 이미지가 다 받아지면 유리 효과를 화면 뒤에서 한 번 그려 봄
+    if ((images >= 1 || timedOut) && warm === "no") {
+      warm = "running";
+      warmUpIntro().then(() => { warm = "done"; });
+    }
+
+    const progress = video * 0.4 + images * 0.5 + (warm === "done" ? 0.1 : 0);
+    openingLoader.style.setProperty("--progress", progress.toFixed(3));
+
+    if (!started && !gateReady && ((video >= 1 && images >= 1 && warm === "done") || timedOut)) {
+      gateReady = "trying";
+      startVideo(false);
+    }
+
+    const gated = opening.classList.contains("is-gated");
+    openingLoader.classList.toggle("is-visible", gated ? gateReady !== true : started && waiting);
+  };
+
+  ["progress", "loadedmetadata", "loadeddata", "canplay", "canplaythrough"].forEach((type) => {
+    openingVideo.addEventListener(type, prepare);
   });
   openingVideo.addEventListener("suspend", () => {
     if (openingVideo.readyState >= 3) suspended = true;
-    paintLoader();
+    prepare();
   });
-  openingVideo.addEventListener("waiting", () => { waiting = true; suspended = false; paintLoader(); });
-  openingVideo.addEventListener("playing", () => { waiting = false; paintLoader(); });
-  const loaderTimer = setInterval(() => {
+  openingVideo.addEventListener("waiting", () => { waiting = true; prepare(); });
+  openingVideo.addEventListener("playing", () => { waiting = false; prepare(); });
+  const prepareTimer = setInterval(() => {
     if (!opening.isConnected || assemblyStarted) {
-      clearInterval(loaderTimer);
+      clearInterval(prepareTimer);
       openingLoader?.classList.remove("is-visible");
       return;
     }
-    paintLoader();
-  }, 250);
+    prepare();
+  }, 200);
 
-  try {
-    openingVideo.muted = false;
-    openingVideo.removeAttribute("muted");
-    await openingVideo.play();
-    paintSound();
-  } catch (error) {
-    if (assemblyStarted) return;
-    if (error?.name === "NotAllowedError" || openingVideo.paused) {
-      openingVideo.pause();
-      opening.classList.add("is-gated");
-      openingGate.hidden = false;
-      openingSound.hidden = true;
-      // 사파리는 멈춘 영상을 잘 받아 두지 않으므로, 소리 없이 아주 잠깐 재생했다 멈춰서 받기 시작하게 함
-      // (입장 화면이 흰 배경으로 덮고 있어 보이지 않음)
-      openingVideo.muted = true;
-      openingVideo.play().then(() => {
-        if (gateReady && !opening.classList.contains("is-gated")) return;
-        openingVideo.pause();
-        openingVideo.currentTime = 0;
-      }).catch(() => {});
-      // 아주 느린 연결이어도 8초 뒤에는 들어갈 수 있게
-      setTimeout(readyGate, 8000);
-      paintLoader();
-    }
-  }
+  // 영상 받기 시작: 사파리는 멈춘 영상을 잘 받아 두지 않으므로 소리 없이 아주 잠깐 재생했다 멈춤
+  // (흰 입장 화면이 덮고 있어 보이지 않음)
+  openingVideo.muted = true;
+  openingVideo.play().then(() => {
+    if (started) return;
+    openingVideo.pause();
+    openingVideo.currentTime = 0;
+  }).catch(() => {});
+  prepare();
 
   requestAnimationFrame(watchOpening);
   watchFrames();
@@ -544,7 +578,7 @@ gardenTypes.forEach((type) => {
         ? String(imageNumber).padStart(2, "0")
         : String(imageNumber);
 
-    const fileName = `#${formattedNumber} ${type}_garden.png`;
+    const fileName = `#${formattedNumber} ${type}_garden.jpg`;
     const imagePath = `images-small/${encodeURIComponent(fileName)}`;
 
     const cell = cellForImage[imageNumber - 1];
@@ -757,6 +791,35 @@ function animateGlass() {
 }
 
 animateGlass();
+
+// 시작 전 준비: 인트로가 흰 입장 화면 뒤에 있는 동안 이미지를 미리 풀고,
+// 유리 구멍(호버 효과)을 몇 번 그려 봐서 첫 호버가 바로 부드럽게 반응하도록
+function warmUpIntro() {
+  return new Promise((resolve) => {
+    if (isFalling || !document.body.classList.contains("is-opening")) {
+      resolve();
+      return;
+    }
+    document.body.classList.add("is-warming");
+    const images = [...document.querySelectorAll("#gardenGrid img")];
+    const decoded = Promise.all(images.map((image) => (image.decode ? image.decode().catch(() => {}) : null)));
+    const picks = tiles.filter((_, index) => index % 25 === 3);
+    let index = 0;
+    const step = () => {
+      if (index < picks.length && document.body.classList.contains("is-opening")) {
+        setActiveTile(picks[index++]);
+        setTimeout(step, 120);
+        return;
+      }
+      setActiveTile(null);
+      setTimeout(() => {
+        document.body.classList.remove("is-warming");
+        resolve();
+      }, 400);
+    };
+    Promise.race([decoded, new Promise((r) => setTimeout(r, 8000))]).then(step);
+  });
+}
 
 
 /* =========================================

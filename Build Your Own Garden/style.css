@@ -662,6 +662,12 @@ body.is-opening .world {
   opacity: 0;
 }
 
+/* 시작 준비 중: 흰 입장 화면 뒤에서 인트로를 미리 그려 봄 (보이지 않음) */
+body.is-opening.is-warming .world {
+  opacity: 1;
+  transition: none;
+}
+
 /* 흰 화면에서 BGM만 남은 뒤: 영상은 투명하게 숨기고(소리는 계속) 아래 페이지가 보이게 */
 .opening.is-listening {
   background: transparent;
