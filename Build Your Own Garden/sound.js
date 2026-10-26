@@ -195,7 +195,7 @@
   window.gardenSound = sound;
 
   // 버튼에 마우스를 올리면 (들어올 때 한 번)
-  const HOVER = ".start-button, .opening-sound, #finishButton, .save-button, .back-button, .folder-tab, .dialog-button, .tool, .layers-group, .filter-arrow, .filter-track button";
+  const HOVER = ".start-button, #finishButton, .save-button, .back-button, .folder-tab, .dialog-button, .tool, .layers-group, .filter-arrow, .filter-track button";
   document.addEventListener("pointerover", (event) => {
     if (event.pointerType === "touch") return;
     const button = event.target.closest?.(HOVER);

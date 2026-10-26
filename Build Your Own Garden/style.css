@@ -509,6 +509,38 @@ body.is-falling .glass {
   50% { opacity: 0.35; }
 }
 
+/* 로딩: 가운데 아래의 1px 선이 받아진 만큼 차오름 (다 받아지면 사라짐) */
+.opening-loader {
+  --progress: 0;
+
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 26px);
+  z-index: 3;
+
+  width: 96px;
+  height: 1px;
+  margin-left: -48px;
+
+  background: rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+
+.opening-loader i {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.55);
+  transform: scaleX(var(--progress));
+  transform-origin: 0 50%;
+  transition: transform 300ms ease;
+}
+
+.opening-loader.is-visible {
+  opacity: 1;
+}
+
 /* 오른쪽 아래: [ SKIP ] / 왼쪽 아래: [ SOUND ON ] */
 .opening-sound {
   position: absolute;

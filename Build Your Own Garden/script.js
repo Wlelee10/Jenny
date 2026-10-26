@@ -192,6 +192,45 @@ async function playOpening() {
     enter();
   });
 
+  // 로딩바: 입장 화면에서는 바로 재생할 수 있을 만큼(앞 2.5초) 받아질 때까지 차오르고,
+  // 재생 중 멈춰 기다릴 때만 다시 보임
+  const openingLoader = document.querySelector("#openingLoader");
+  const READY_AHEAD = 2.5;
+  let suspended = false; // 브라우저가 충분히 받았다고 보고 잠시 멈춤
+  let waiting = true; // 첫 화면이 그려지기 전까지는 기다리는 중
+  const paintLoader = () => {
+    if (!openingLoader || !opening.isConnected) return;
+    let ahead = 0;
+    const { buffered, currentTime, duration } = openingVideo;
+    for (let i = 0; i < buffered.length; i++) {
+      if (buffered.start(i) <= currentTime + 0.1 && buffered.end(i) > currentTime) ahead = buffered.end(i) - currentTime;
+    }
+    const target = Math.min(READY_AHEAD, (duration || READY_AHEAD) - currentTime);
+    const ready = suspended || openingVideo.readyState >= 4;
+    const progress = ready ? 1 : Math.min(1, target > 0 ? ahead / target : 1);
+    openingLoader.style.setProperty("--progress", progress.toFixed(3));
+    const gated = opening.classList.contains("is-gated");
+    const show = !assemblyStarted && (gated ? progress < 1 : waiting);
+    openingLoader.classList.toggle("is-visible", show);
+  };
+  ["progress", "loadedmetadata", "loadeddata", "canplay", "canplaythrough", "timeupdate"].forEach((type) => {
+    openingVideo.addEventListener(type, paintLoader);
+  });
+  openingVideo.addEventListener("suspend", () => {
+    if (openingVideo.readyState >= 3) suspended = true;
+    paintLoader();
+  });
+  openingVideo.addEventListener("waiting", () => { waiting = true; suspended = false; paintLoader(); });
+  openingVideo.addEventListener("playing", () => { waiting = false; paintLoader(); });
+  const loaderTimer = setInterval(() => {
+    if (!opening.isConnected || assemblyStarted) {
+      clearInterval(loaderTimer);
+      openingLoader?.classList.remove("is-visible");
+      return;
+    }
+    paintLoader();
+  }, 250);
+
   try {
     openingVideo.muted = false;
     openingVideo.removeAttribute("muted");
