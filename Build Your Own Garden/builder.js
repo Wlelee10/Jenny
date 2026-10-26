@@ -2501,11 +2501,7 @@
     }
   });
 
-  // 단축키를 툴 이름표에 표시
-  toolbar.querySelectorAll(".tool").forEach((button) => {
-    if (button.dataset.key) button.dataset.tip += `  ${MOD_LABEL}${button.dataset.key}`;
-    else if (button.dataset.shortcut) button.dataset.tip += `  ${button.dataset.shortcut}`;
-  });
+  // 툴 이름표에는 설명만 (단축키는 표시하지 않음)
 
   /* =========================================
      EYEDROPPER (스포이드)

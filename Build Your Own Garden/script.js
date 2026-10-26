@@ -171,7 +171,7 @@ async function playOpening() {
   // 소리와 함께 재생 시도 — 브라우저가 막으면(사파리 등) [ CLICK TO ENTER ]
   // 한 번 누르면 그 순간 영상이 처음부터 소리와 함께 재생됨
   const enter = () => {
-    if (!opening.classList.contains("is-gated")) return;
+    if (!opening.classList.contains("is-gated") || !gateReady) return;
     opening.classList.remove("is-gated");
     openingGate.hidden = true;
     openingSound.hidden = false;
@@ -192,6 +192,17 @@ async function playOpening() {
     enter();
   });
 
+  // 입장 화면: 영상이 바로 재생할 만큼 받아질 때까지 LOADING → 다 되면 [ CLICK TO ENTER ]
+  const gateLabel = document.querySelector("#openingGateLabel");
+  let gateReady = false;
+  const readyGate = () => {
+    if (gateReady) return;
+    gateReady = true;
+    if (gateLabel) gateLabel.textContent = "[ CLICK TO ENTER ]";
+    openingGate.classList.add("is-ready");
+    openingGate.setAttribute("aria-label", "Click to enter");
+  };
+
   // 로딩바: 입장 화면에서는 바로 재생할 수 있을 만큼(앞 2.5초) 받아질 때까지 차오르고,
   // 재생 중 멈춰 기다릴 때만 다시 보임
   const openingLoader = document.querySelector("#openingLoader");
@@ -210,6 +221,7 @@ async function playOpening() {
     const progress = ready ? 1 : Math.min(1, target > 0 ? ahead / target : 1);
     openingLoader.style.setProperty("--progress", progress.toFixed(3));
     const gated = opening.classList.contains("is-gated");
+    if (gated && progress >= 1) readyGate();
     const show = !assemblyStarted && (gated ? progress < 1 : waiting);
     openingLoader.classList.toggle("is-visible", show);
   };
@@ -243,6 +255,17 @@ async function playOpening() {
       opening.classList.add("is-gated");
       openingGate.hidden = false;
       openingSound.hidden = true;
+      // 사파리는 멈춘 영상을 잘 받아 두지 않으므로, 소리 없이 아주 잠깐 재생했다 멈춰서 받기 시작하게 함
+      // (입장 화면이 흰 배경으로 덮고 있어 보이지 않음)
+      openingVideo.muted = true;
+      openingVideo.play().then(() => {
+        if (gateReady && !opening.classList.contains("is-gated")) return;
+        openingVideo.pause();
+        openingVideo.currentTime = 0;
+      }).catch(() => {});
+      // 아주 느린 연결이어도 8초 뒤에는 들어갈 수 있게
+      setTimeout(readyGate, 8000);
+      paintLoader();
     }
   }
 

@@ -17,7 +17,7 @@
     <video class="opening-video" id="openingVideo" playsinline webkit-playsinline preload="auto"
       src="opening.mp4"></video>
     <!-- 소리 있는 자동 재생이 막힌 브라우저(사파리 등): 한 번 누르면 소리와 함께 시작 -->
-    <button class="opening-gate" id="openingGate" type="button" hidden><span>[ CLICK TO ENTER ]</span></button>
+    <button class="opening-gate" id="openingGate" type="button" hidden><span id="openingGateLabel">LOADING</span></button>
     <!-- 영상이 받아지는 만큼 차오르는 얇은 선 -->
     <div class="opening-loader" id="openingLoader" aria-hidden="true"><i></i></div>
     <button class="opening-sound" id="openingSound" type="button" aria-pressed="true" hidden>[ SOUND ON ]</button>
@@ -99,9 +99,9 @@
           <button type="button" data-category="all" class="is-active" aria-pressed="true">ALL</button>
           <button type="button" data-category="plants" aria-pressed="false">PLANTS</button>
           <button type="button" data-category="landscape" aria-pressed="false">LANDSCAPE</button>
+          <button type="button" data-category="sky" aria-pressed="false">SKY</button>
           <button type="button" data-category="objects" aria-pressed="false">OBJECTS</button>
           <button type="button" data-category="characters" aria-pressed="false">CHARACTERS</button>
-          <button type="button" data-category="sky" aria-pressed="false">SKY</button>
           <button type="button" data-category="backgrounds" aria-pressed="false">BG</button>
         </nav>
         <button class="filter-arrow" type="button" data-dir="1" aria-label="More categories"><svg viewBox="0 0 6 10" aria-hidden="true"><path d="M1 1l4 4-4 4" /></svg></button>

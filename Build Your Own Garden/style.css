@@ -495,11 +495,28 @@ body.is-falling .glass {
   display: none;
 }
 
+/* 받는 중: LOADING (누를 수 없음) → 다 되면 [ CLICK TO ENTER ] */
+.opening-gate {
+  cursor: default;
+}
+
 .opening-gate span {
+  color: #9a9a9a;
+  letter-spacing: 0.12em;
+  animation: gate-breathe 1.6s ease-in-out infinite;
+}
+
+.opening-gate.is-ready {
+  cursor: pointer;
+}
+
+.opening-gate.is-ready span {
+  color: var(--ink);
+  letter-spacing: 0.04em;
   animation: gate-breathe 2.4s ease-in-out infinite;
 }
 
-.opening-gate:hover span {
+.opening-gate.is-ready:hover span {
   animation: none;
   color: var(--red, #b3141e);
 }
