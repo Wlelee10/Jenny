@@ -472,7 +472,14 @@ body.is-falling .glass {
      (사파리는 video에 mask를 걸면 영상을 그리지 않으므로 mask는 쓰지 않음) */
 }
 
-/* 오른쪽 아래: [ SOUND ON ] [ SKIP ] */
+/* 오른쪽 아래: [ SKIP ] / 왼쪽 아래: [ SOUND ON ] */
+.opening-sound {
+  position: absolute;
+  left: 34px;
+  bottom: 28px;
+  z-index: 1;
+}
+
 .opening-controls {
   position: absolute;
   right: 34px;
@@ -561,6 +568,7 @@ body.is-opening .world {
   opacity: 0;
 }
 
+.opening.is-listening .opening-sound,
 .opening.is-listening .opening-controls {
   pointer-events: auto;
 }

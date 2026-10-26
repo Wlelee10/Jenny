@@ -103,9 +103,7 @@ function unmuteOpening() {
   }
 }
 
-// 사파리는 소리 있는 자동 재생을 절대 허용하지 않으므로 처음부터 소리 없이 시작
-const isSafariBrowser = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
-
+// 사파리 · 크롬 모두 소리 없는 자동 재생만 확실히 허용하므로 항상 소리 없이 시작 → [ SOUND ON ]
 async function playMuted() {
   openingVideo.muted = true;
   openingVideo.setAttribute("muted", "");
@@ -149,17 +147,23 @@ async function playOpening() {
     openingSound.hidden = !openingVideo.muted;
   });
 
+  // 멈춰 있으면 다시 재생을 시도할 때들: 받아지는 대로 · 탭으로 돌아왔을 때 · 화면을 처음 건드렸을 때
+  const retry = () => {
+    if (assemblyStarted || !openingVideo.paused || openingVideo.ended) return;
+    playMuted().catch(() => {});
+  };
+  ["loadedmetadata", "loadeddata", "canplay", "canplaythrough"].forEach((type) => {
+    openingVideo.addEventListener(type, retry);
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) retry();
+  });
+  ["pointerdown", "keydown", "touchstart"].forEach((type) => {
+    window.addEventListener(type, retry, { capture: true, passive: true });
+  });
+
   try {
-    if (isSafariBrowser) {
-      await playMuted();
-    } else {
-      try {
-        openingVideo.muted = false;
-        await openingVideo.play();
-      } catch {
-        await playMuted();
-      }
-    }
+    await playMuted();
   } catch {
     // 아직 준비가 덜 됐을 수 있으니, 재생할 수 있게 되면 한 번 더 시도
     try {
