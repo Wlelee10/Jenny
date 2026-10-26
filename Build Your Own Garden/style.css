@@ -592,6 +592,7 @@ body.is-assembling .glass,
 body.is-assembling .intro-info,
 body.is-assembling .start-button {
   opacity: 0;
+  transition: none; /* 깔리기 시작할 때 서서히 사라지는 게 보이지 않게, 바로 숨김 */
 }
 
 /* 화면 가득 깔릴 때는 살짝만 둥근 사각형 → 글자 자리로 모이며 둥글어짐 (끝나면 애플 아이콘 모양 마스크로) */
