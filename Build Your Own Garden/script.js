@@ -450,14 +450,24 @@ async function playOpening() {
     loaderRing?.appendChild(span);
     ringChars.push(span);
   }
-  const flipTimer = setInterval(() => {
-    if (!opening.isConnected || gateReady) {
-      clearInterval(flipTimer);
-      return;
+  // 진한 글자가 원을 따라 차례로 옮겨 가고, 그 뒤로 회색으로 옅어지는 꼬리 (그라데이션)
+  let head = 0;
+  const spinRing = () => {
+    if (!opening.isConnected || gateReady) return;
+    head = (head + 1) % RING;
+    ringChars.forEach((span, i) => {
+      const behind = (head - i + RING) % RING;   // 0 = 맨 앞 (가장 진함)
+      const t = behind / (RING - 1);
+      const shade = Math.round(17 + (215 - 17) * Math.min(1, t * 1.25));
+      span.style.color = `rgb(${shade}, ${shade}, ${shade})`;
+    });
+    if (Math.random() < 0.35) {
+      const span = ringChars[Math.floor(Math.random() * RING)];
+      span.textContent = span.textContent === "0" ? "1" : "0";
     }
-    const span = ringChars[Math.floor(Math.random() * RING)];
-    if (span) span.textContent = span.textContent === "0" ? "1" : "0";
-  }, 120);
+    setTimeout(spinRing, 70);
+  };
+  spinRing();
 
   const hideGate = () => {
     opening.classList.remove("is-gated");
@@ -570,8 +580,6 @@ async function playOpening() {
     }
 
     const progress = videoLoaded * 0.7 + images * 0.25 + (warm === "done" ? 0.05 : 0);
-    const on = Math.round(progress * RING);
-    ringChars.forEach((span, i) => span.classList.toggle("is-on", i < on));
     openingLoader.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
 
     if (!started && !gateReady && ((videoReady && images >= 1 && warm === "done") || (timedOut && openingVideo.readyState >= 3))) showEnter();

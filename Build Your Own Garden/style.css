@@ -602,11 +602,6 @@ body.is-falling .glass {
   font-weight: 700;
   line-height: 1;
   color: #d4d4d4;
-  transition: color 300ms ease;
-}
-
-.loader-ring span.is-on {
-  color: var(--ink);
 }
 
 @keyframes loader-spin {
