@@ -511,10 +511,12 @@ body.is-falling .glass {
 }
 
 /* 글: 두 손 사이 (참고 3) — 빨간 제목 아래 회색 네 줄, 그 아래 버튼 */
+/* 손 점과 같은 좌표(화면 폭 기준, 세로는 가운데 기준)로 놓아서
+   창 크기를 바꿔도 손과의 거리 · 크기 비율이 그대로 → 겹치지 않음 */
 .gate-copy {
   position: absolute;
-  left: 39.3vw;
-  top: 36vh;
+  left: 39.25vw;
+  top: calc(var(--gate-top, 0px) + 19.5vw);
   z-index: 1;
   text-align: left;
   font-family: "Inter", Arial, Helvetica, sans-serif;
@@ -537,7 +539,7 @@ body.is-falling .glass {
 .gate-title {
   margin: 0 0 0.85vw;
   color: var(--red, #b3141e);
-  font-size: clamp(22px, 2vw, 44px);
+  font-size: 2vw;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -549,33 +551,17 @@ body.is-falling .glass {
   gap: 0;
   margin: 0;
   color: #6b6b6b;
-  font-size: clamp(10px, 0.66vw, 15px);
+  font-size: 0.66vw;
   line-height: 1.75;
   white-space: nowrap;
 }
 
-/* 좁은 화면: 가운데 한 덩어리로 */
-@media (max-width: 900px) {
-  .gate-copy {
-    left: 50%;
-    top: 50%;
-    width: min(92vw, 560px);
-    transform: translate(-50%, -50%);
-    text-align: center;
-    text-shadow: 0 0 6px #ffffff, 0 0 12px #ffffff, 0 0 18px #ffffff;
-  }
-
-  .gate-text {
-    white-space: normal;
-    align-items: center;
-  }
-}
 
 /* 준비 중: 얇은 선 → 다 되면 그 자리에 검정 알약 버튼 */
 .gate-foot {
   position: relative;
-  height: clamp(36px, 2.1vw, 48px);
-  margin-top: 2.1vw;
+  height: 2.05vw;
+  margin-top: 1.65vw;
   margin-left: 2.75vw;
 }
 
@@ -588,7 +574,7 @@ body.is-falling .glass {
   left: 0;
   top: 50%;
 
-  width: 120px;
+  width: 9.5vw;
   height: 1px;
 
   background: rgba(0, 0, 0, 0.08);
@@ -622,7 +608,7 @@ body.is-falling .glass {
   background: #111111;
   color: #ffffff;
   font-family: inherit;
-  font-size: clamp(12px, 0.78vw, 17px);
+  font-size: 0.76vw;
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -1072,28 +1058,4 @@ body.is-falling .abyss {
   }
 }
 
-@media (max-width: 900px) {
-  .gate-copy .gate-foot {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-left: 0;
-  }
 
-  .gate-copy .gate-enter,
-  .gate-copy .gate-enter:hover {
-    position: relative;
-    top: auto;
-    transform: none;
-    animation-name: gate-in;
-  }
-
-  .gate-copy .opening-loader {
-    position: relative;
-    top: auto;
-  }
-
-  .gate-copy .opening-loader:not(.is-visible) {
-    display: none;
-  }
-}

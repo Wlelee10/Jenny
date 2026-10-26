@@ -188,6 +188,8 @@ function drawGateArt() {
 
   // 참고 이미지(폭 1 · 높이 ratio)를 화면 폭에 맞추고 세로 가운데
   const shiftY = height / 2 - (gateDots.ratio * width) / 2;
+  // 글도 같은 세로 기준으로 (CSS: top = 이 값 + 화면 폭 비율)
+  document.querySelector("#openingGate")?.style.setProperty("--gate-top", `${shiftY.toFixed(1)}px`);
   const list = gateDots.dots;
   context.fillStyle = "#111111";
   for (let i = 0; i < list.length; i += 3) {
