@@ -407,7 +407,7 @@ body.is-falling .glass {
    START
 ========================================= */
 
-/* 소개글 바로 아래, 오른쪽 정렬 · 회색 → 올리면 검정 */
+/* 소개글 바로 아래, 오른쪽 정렬 · 빨간색 */
 .start-button {
   position: absolute;
   right: var(--info-right, 60%);
@@ -420,7 +420,7 @@ body.is-falling .glass {
   background: none;
   font-family: inherit;
 
-  color: #9a9a9a;
+  color: var(--red);
   font-size: calc(var(--g-cell, 40px) * 0.39);
   font-weight: 400;
   text-decoration: none;
@@ -431,7 +431,7 @@ body.is-falling .glass {
 }
 
 .start-button:hover {
-  color: var(--ink);
+  opacity: 0.5;
 }
 
 .start-button:focus-visible {
@@ -1105,4 +1105,14 @@ body.is-falling .abyss {
   }
 }
 
+/* 시작을 누르면: 입장 화면 배경이 투명해져 영상이 드러나고, 글 · 버튼은 사라짐 (손은 JS가 양쪽으로) */
+.opening.is-entering .opening-gate {
+  background: transparent;
+  pointer-events: none;
+  transition: background-color 900ms ease;
+}
 
+.opening.is-entering .gate-copy {
+  opacity: 0;
+  transition: opacity 500ms ease;
+}

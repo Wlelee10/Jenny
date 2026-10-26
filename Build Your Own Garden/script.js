@@ -193,6 +193,7 @@ const gateScene = {
   ready: false, width: 0, height: 0, k: 0, context: null,
   dots: null,              // Float32Array [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char] × n
   pointer: null,           // 마우스 위치
+  exitAt: 0,               // 시작 버튼을 누른 시각 (손이 양쪽으로 들어감)
   last: 0,
   running: false
 };
@@ -272,6 +273,7 @@ const STRIDE = 11; // [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char, hand]
    여기저기 점이 잠깐씩 0 · 1 로 반짝임 */
 const IDLE_PERIOD = 7;      // 초. 한 번 떠올랐다 내려오는 시간
 const IDLE_FLICKER = 7;     // 1초에 0 · 1 로 반짝이는 점 수
+const GATE_EXIT_MS = 900;   // 시작을 누른 뒤: 글이 사라지고 손이 양쪽으로 들어가는 시간
 
 function gateFrame(now, once) {
   const scene = gateScene;
@@ -293,6 +295,13 @@ function gateFrame(now, once) {
     { x: Math.sin(phase * 0.5) * 0.004 * k, y: Math.sin(phase) * 0.006 * k },
     { x: -Math.sin(phase * 0.5 + 0.8) * 0.004 * k, y: Math.sin(phase + Math.PI) * 0.006 * k }
   ];
+  // 퇴장: 왼손은 왼쪽으로, 오른손은 오른쪽으로 들어감
+  if (scene.exitAt) {
+    const t = Math.min(1, (now - scene.exitAt) / GATE_EXIT_MS);
+    const e = t * t * t;
+    drift[0].x -= e * width * 0.75;
+    drift[1].x += e * width * 0.75;
+  }
 
   // 가끔 아무 점이나 0 · 1 로 반짝 (입장 화면이 보일 때만)
   const gateOpen = gateArt.isConnected && !gateArt.closest("[hidden]");
@@ -527,7 +536,12 @@ async function playOpening() {
     try {
       await openingVideo.play();
       started = true;
-      hideGate();
+      // 글은 사라지고 두 손은 양쪽으로 들어가며, 그 사이로 영상이 드러남
+      opening.classList.add("is-entering");
+      gateScene.exitAt = performance.now();
+      gateScene.pointer = null;
+      wakeGate();
+      setTimeout(hideGate, GATE_EXIT_MS);
     } catch {
       openingVideo.pause();
       endOpening(); // 눌러도 재생할 수 없으면(파일 문제 등) 첫 페이지로
