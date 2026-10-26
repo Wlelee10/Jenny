@@ -92,15 +92,27 @@ function watchOpening() {
   requestAnimationFrame(watchOpening);
 }
 
-function unmuteOpening() {
+// 소리: 처음부터 켜진 상태가 기본. 버튼을 누르면 [ SOUND OFF ](회색) ↔ [ SOUND ON ]
+let soundOffByUser = false;
+
+function paintSound() {
+  if (!openingSound || !openingVideo) return;
+  const off = openingVideo.muted;
+  openingSound.textContent = off ? "[ SOUND OFF ]" : "[ SOUND ON ]";
+  openingSound.classList.toggle("is-off", off);
+  openingSound.setAttribute("aria-pressed", String(!off));
+}
+
+function setOpeningSound(on) {
   if (!openingVideo) return;
-  openingVideo.muted = false;
-  openingSound.hidden = true;
-  // 멈춰 있었으면(자동 재생이 막혔으면) 클릭한 김에 소리와 함께 재생
-  if (openingVideo.paused) {
+  openingVideo.muted = !on;
+  if (on) openingVideo.removeAttribute("muted");
+  // 멈춰 있었으면(자동 재생이 막혔으면) 누른 김에 재생
+  if (openingVideo.paused && !openingVideo.ended && !assemblyStarted) {
     openingPlay.hidden = true;
     openingVideo.play().catch(() => { openingPlay.hidden = false; });
   }
+  paintSound();
 }
 
 // 사파리 · 크롬 모두 소리 없는 자동 재생만 확실히 허용하므로 항상 소리 없이 시작 → [ SOUND ON ]
@@ -115,7 +127,6 @@ async function playMuted() {
 function showPlayIfStopped() {
   if (!document.body.classList.contains("is-opening")) return;
   if (!openingVideo.paused) return;
-  openingSound.hidden = true;
   openingPlay.hidden = false;
 }
 
@@ -128,7 +139,16 @@ async function playOpening() {
   // 파일을 아예 불러올 수 없을 때만 건너뜀 (느리게 받아지는 중이면 기다림)
   openingVideo.addEventListener("ended", endOpening);
   openingVideo.addEventListener("error", endOpening);
-  opening.addEventListener("click", unmuteOpening);
+  openingSound.hidden = false;
+  paintSound();
+  openingVideo.addEventListener("volumechange", paintSound);
+  openingSound.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const on = openingVideo.muted;
+    soundOffByUser = !on;
+    setOpeningSound(on);
+  });
+  openingPlay.addEventListener("click", () => setOpeningSound(!soundOffByUser));
 
   // [ SKIP ] → 영상 · 소리 없이 바로 완성된 첫 페이지 (START를 바로 누를 수 있음)
   openingSkip?.addEventListener("click", (event) => {
@@ -141,13 +161,13 @@ async function playOpening() {
     document.body.classList.remove("is-opening");
   });
 
-  // 실제로 재생되기 시작하면: PLAY는 숨기고, 소리가 꺼져 있으면 SOUND ON
+  // 실제로 재생되기 시작하면 PLAY는 숨김
   openingVideo.addEventListener("playing", () => {
     openingPlay.hidden = true;
-    openingSound.hidden = !openingVideo.muted;
+    paintSound();
   });
 
-  // 멈춰 있으면 다시 재생을 시도할 때들: 받아지는 대로 · 탭으로 돌아왔을 때 · 화면을 처음 건드렸을 때
+  // 멈춰 있으면 다시 재생을 시도할 때들: 받아지는 대로 · 탭으로 돌아왔을 때
   const retry = () => {
     if (assemblyStarted || !openingVideo.paused || openingVideo.ended) return;
     playMuted().catch(() => {});
@@ -158,12 +178,27 @@ async function playOpening() {
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) retry();
   });
+
+  // 브라우저가 소리를 막았던 경우: 화면을 처음 누르거나 키를 누르는 순간 소리를 켬 (직접 끈 경우는 제외)
+  const wake = (event) => {
+    if (!opening.isConnected || event.target.closest?.(".opening-sound, .opening-skip")) return;
+    if (openingVideo.muted && !soundOffByUser) setOpeningSound(true);
+    else retry();
+  };
   ["pointerdown", "keydown", "touchstart"].forEach((type) => {
-    window.addEventListener(type, retry, { capture: true, passive: true });
+    window.addEventListener(type, wake, { capture: true, passive: true });
   });
 
   try {
-    await playMuted();
+    // 먼저 소리와 함께 → 막히면 소리 없이 (SOUND OFF로 표시)
+    try {
+      openingVideo.muted = false;
+      openingVideo.removeAttribute("muted");
+      await openingVideo.play();
+    } catch {
+      await playMuted();
+    }
+    paintSound();
   } catch {
     // 아직 준비가 덜 됐을 수 있으니, 재생할 수 있게 되면 한 번 더 시도
     try {

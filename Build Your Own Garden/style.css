@@ -509,6 +509,19 @@ body.is-falling .glass {
   background: rgba(255, 255, 255, 0.95);
 }
 
+/* 소리를 끈 상태: [ SKIP ]과 같은 회색 */
+.opening-sound {
+  transition: color 180ms ease, background-color 180ms ease;
+}
+
+.opening-sound.is-off {
+  color: #a6a6a6;
+}
+
+.opening-sound.is-off:hover {
+  color: var(--ink);
+}
+
 /* [ SKIP ]: 평소엔 연한 회색 글자, 올리면 진해짐 */
 .opening-skip {
   color: #a6a6a6;
