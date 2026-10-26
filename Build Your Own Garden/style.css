@@ -511,14 +511,17 @@ body.is-falling .glass {
 }
 
 /* 글: 두 손 사이 (참고 3) — 빨간 제목 아래 회색 네 줄, 그 아래 버튼 */
-/* 손 점과 같은 좌표(화면 폭 기준, 세로는 가운데 기준)로 놓아서
-   창 크기를 바꿔도 손과의 거리 · 크기 비율이 그대로 → 겹치지 않음 */
+/* 글 · 버튼: 화면 가운데 정렬 덩어리. 크기는 손 크기(--k: JS가 정함)에 비례 */
 .gate-copy {
+  --k: 1500px;
+  --space: calc(var(--k) * 0.0155); /* 제목 · 첫 문단 · 둘째 문단 · 버튼 사이 같은 간격 */
+
   position: absolute;
-  left: 39.25vw;
-  top: calc(var(--gate-top, 0px) + 19.5vw);
+  left: 50%;
+  top: var(--gate-cy, 42%);
   z-index: 1;
-  text-align: left;
+  transform: translate(-50%, -50%);
+  text-align: center;
   font-family: "Inter", Arial, Helvetica, sans-serif;
 }
 
@@ -530,16 +533,18 @@ body.is-falling .glass {
 
 .gate-copy > :nth-child(1) { animation-delay: 300ms; }
 .gate-copy > :nth-child(2) { animation-delay: 1200ms; }
-.gate-copy > :nth-child(3) { animation-delay: 2600ms; }
+.gate-copy > :nth-child(3) { animation-delay: 2300ms; }
+.gate-copy > :nth-child(4) { animation-delay: 3400ms; }
 
 @keyframes gate-in {
   to { opacity: 1; transform: none; }
 }
 
 .gate-title {
-  margin: 0 0 0.85vw;
+  /* 본문 줄 간격의 위쪽 여백만큼 더해서, 눈에 보이는 간격이 문단 사이와 같도록 */
+  margin: 0 0 calc(var(--space) + var(--k) * 0.0068 * 0.42);
   color: var(--red, #b3141e);
-  font-size: 2vw;
+  font-size: calc(var(--k) * 0.0196);
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -548,11 +553,12 @@ body.is-falling .glass {
 .gate-text {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0;
-  margin: 0;
+  margin: 0 0 var(--space);
   color: var(--ink);
-  font-size: 0.66vw;
-  line-height: 1.75;
+  font-size: calc(var(--k) * 0.0068);
+  line-height: 1.85;
   white-space: nowrap;
 }
 
@@ -560,9 +566,8 @@ body.is-falling .glass {
 /* 준비 중: 얇은 선 → 다 되면 그 자리에 검정 알약 버튼 */
 .gate-foot {
   position: relative;
-  height: 2.05vw;
-  margin-top: 1.65vw;
-  margin-left: 2.75vw;
+  height: calc(var(--k) * 0.0237);
+  margin: 0;
 }
 
 
@@ -571,11 +576,12 @@ body.is-falling .glass {
   --progress: 0;
 
   position: absolute;
-  left: 0;
+  left: 50%;
   top: 50%;
 
-  width: 9.5vw;
+  width: calc(var(--k) * 0.06);
   height: 1px;
+  transform: translateX(-50%);
 
   background: rgba(0, 0, 0, 0.08);
   opacity: 0;
@@ -598,17 +604,18 @@ body.is-falling .glass {
 
 .gate-enter {
   position: absolute;
-  left: 0;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
 
-  padding: 0.75em 1.25em;
+  padding: 0 1.25em;
+  height: 100%;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: #ffffff;
   font-family: inherit;
-  font-size: 0.76vw;
+  font-size: calc(var(--k) * 0.0085);
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -639,23 +646,23 @@ body.is-falling .glass {
   left: 0;
   right: 0;
   top: 35%;
-  bottom: -0.45vw;
+  bottom: calc(var(--k) * -0.0045);
   z-index: -2;
 
   border-radius: 999px;
   background: linear-gradient(90deg, #ffd36b, #ff8bd1, #b58cff, #7fd3ff, #9cf0b8);
-  filter: blur(0.55vw);
+  filter: blur(calc(var(--k) * 0.0055));
   opacity: 0.9;
   transition: top 320ms ease, bottom 320ms ease, left 320ms ease, right 320ms ease, opacity 320ms ease, filter 320ms ease;
 }
 
 .gate-enter:hover::after {
-  top: -0.35vw;
-  bottom: -0.35vw;
-  left: -0.35vw;
-  right: -0.35vw;
+  top: calc(var(--k) * -0.0035);
+  bottom: calc(var(--k) * -0.0035);
+  left: calc(var(--k) * -0.0035);
+  right: calc(var(--k) * -0.0035);
   opacity: 1;
-  filter: blur(0.7vw);
+  filter: blur(calc(var(--k) * 0.007));
 }
 
 .gate-enter[hidden] {
@@ -663,14 +670,14 @@ body.is-falling .glass {
 }
 
 .gate-enter:hover {
-  transform: translateY(calc(-50% - 1px));
+  transform: translate(-50%, calc(-50% - 1px));
 }
 
 
 
 @keyframes gate-btn-in {
-  from { opacity: 0; transform: translateY(calc(-50% + 6px)); }
-  to { opacity: 1; transform: translateY(-50%); }
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 6px)); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 /* 오른쪽 아래: [ SKIP ] / 왼쪽 아래: [ SOUND ON ] */

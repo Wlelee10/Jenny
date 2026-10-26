@@ -173,6 +173,21 @@ fetch("gate-dots.json")
   })
   .catch(() => {});
 
+// 손 하나의 경계 (참고 이미지 단위: 가로 = 1)
+function handBounds(dots, right) {
+  const box = { l: Infinity, r: -Infinity, t: Infinity, b: -Infinity };
+  for (let i = 0; i < dots.length; i += 3) {
+    const x = dots[i] / 10000;
+    if ((x >= 0.47) !== right) continue;
+    const y = dots[i + 1] / 10000;
+    box.l = Math.min(box.l, x);
+    box.r = Math.max(box.r, x);
+    box.t = Math.min(box.t, y);
+    box.b = Math.max(box.b, y);
+  }
+  return box;
+}
+
 function drawGateArt() {
   if (!gateArt?.isConnected || !gateDots) return;
   const width = gateArt.clientWidth;
@@ -186,23 +201,60 @@ function drawGateArt() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
   context.clearRect(0, 0, width, height);
 
-  // 참고 이미지(폭 1 · 높이 ratio)를 화면 폭에 맞추고 세로 가운데
-  const shiftY = height / 2 - (gateDots.ratio * width) / 2;
-  // 글도 같은 세로 기준으로 (CSS: top = 이 값 + 화면 폭 비율)
-  document.querySelector("#openingGate")?.style.setProperty("--gate-top", `${shiftY.toFixed(1)}px`);
-  const list = gateDots.dots;
+  // 손 크기 k (참고 이미지 폭 1 → k px): 화면이 세로로 길수록 크게
+  const k = Math.max(width, height * 2);
+  const gate = document.querySelector("#openingGate");
+  const copy = document.querySelector(".gate-copy");
+  const cx = width / 2;
+  const cy = height * 0.42;
+  gate?.style.setProperty("--gate-cy", `${cy.toFixed(1)}px`);
+  copy?.style.setProperty("--k", `${k.toFixed(1)}px`);
+
+  // 글 · 버튼(빛 포함) 영역 — 여기에 가까운 점일수록 투명
+  let area = { l: cx - 0.2 * k, r: cx + 0.2 * k, t: cy - 0.05 * k, b: cy + 0.05 * k };
+  if (copy) {
+    const rect = copy.getBoundingClientRect();
+    const glow = 0.012 * k;
+    area = { l: rect.left - glow, r: rect.right + glow, t: rect.top - glow, b: rect.bottom + glow };
+  }
+  const FADE = 0.16 * k; // 이 거리만큼 멀어지면 완전히 진해짐
+
+  // 왼손: 손끝이 가운데에서 0.092k 왼쪽, 세로 중심은 글보다 살짝 위
+  // 오른손: 손끝이 가운데에서 0.066k 오른쪽, 세로 중심은 글보다 0.113k 아래
+  const dots = gateDots.dots;
+  const L = handBounds(dots, false);
+  const R = handBounds(dots, true);
+  const leftDX = cx - 0.092 * k - L.r * k;
+  const leftDY = cy - 0.009 * k - ((L.t + L.b) / 2) * k;
+  const rightDX = cx + 0.066 * k - R.l * k;
+  const rightDY = cy + 0.113 * k - ((R.t + R.b) / 2) * k;
+
   context.fillStyle = "#111111";
-  for (let i = 0; i < list.length; i += 3) {
-    const x = (list[i] / 10000) * width;
-    const y = (list[i + 1] / 10000) * width + shiftY;
-    const r = ((list[i + 2] / 100000) * width) / 2;
+  for (let i = 0; i < dots.length; i += 3) {
+    const fx = dots[i] / 10000;
+    const right = fx >= 0.47;
+    const x = fx * k + (right ? rightDX : leftDX);
+    const y = (dots[i + 1] / 10000) * k + (right ? rightDY : leftDY);
+    const r = ((dots[i + 2] / 100000) * k) / 2;
+    if (x < -r || x > width + r || y < -r || y > height + r) continue;
+
+    const dx = Math.max(area.l - x, 0, x - area.r);
+    const dy = Math.max(area.t - y, 0, y - area.b);
+    const t = Math.min(1, Math.hypot(dx, dy) / FADE);
+    context.globalAlpha = 0.05 + 0.95 * t * t * (3 - 2 * t);
+
     context.beginPath();
     context.arc(x, y, r, 0, Math.PI * 2);
     context.fill();
   }
+  context.globalAlpha = 1;
 }
 
-if (gateArt) window.addEventListener("resize", drawGateArt);
+if (gateArt) {
+  window.addEventListener("resize", drawGateArt);
+  // 글꼴이 다 받아지면 글 크기가 바뀌므로 다시
+  document.fonts?.ready.then(drawGateArt);
+}
 
 async function playOpening() {
   if (!opening || !openingVideo) {
