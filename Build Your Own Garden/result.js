@@ -609,7 +609,12 @@
         ]
       });
       card.classList.add("card-human");
-      card.querySelector("figcaption").appendChild(makeLikeButton(entry.id));
+      // 제목 옆 오른쪽 끝에 하트
+      const head = document.createElement("div");
+      head.className = "caption-head";
+      const caption = card.querySelector("figcaption");
+      head.append(caption.querySelector(".caption-title"), makeLikeButton(entry.id));
+      caption.prepend(head);
       if (savedEntry && entry.id === savedEntry.id) card.classList.add("is-mine");
       galleryGrid.appendChild(card);
     });
