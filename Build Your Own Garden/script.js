@@ -630,7 +630,7 @@ const GLYPHS = {
 
 const LINES = [
   { text: "BUILD.", align: "right" },
-  { text: "YOUR OWN", align: "left" },
+  { text: "YOUR OWN", align: "left", lastWordRight: true }, // OWN은 아래 GARDEN의 N과 오른쪽 끝을 맞춤
   { text: "GARDEN", align: "right" }
 ];
 
@@ -645,9 +645,11 @@ function layoutLetters() {
   const measured = LINES.map((line) => {
     const cells = [];
     let x = 0;
+    let word = 0;
     [...line.text].forEach((char, index) => {
       if (char === " ") {
         x += WORD_GAP - LETTER_GAP;
+        word++;
         return;
       }
       if (index > 0 && line.text[index - 1] !== " ") x += LETTER_GAP;
@@ -655,12 +657,12 @@ function layoutLetters() {
       const letter = letterCount++;
       glyph.forEach((row, r) => {
         [...row].forEach((mark, c) => {
-          if (mark === "#") cells.push({ col: x + c, row: r, letter, char, lc: c, lr: r });
+          if (mark === "#") cells.push({ col: x + c, row: r, letter, char, lc: c, lr: r, word });
         });
       });
       x += glyph[0].length;
     });
-    return { ...line, cells, width: x };
+    return { ...line, cells, width: x, words: word };
   });
 
   const columns = Math.max(...measured.map((line) => line.width + (line.align === "left" ? RIGHT_OVERHANG : 0)));
@@ -669,7 +671,13 @@ function layoutLetters() {
   measured.forEach((line, index) => {
     const offset = line.align === "right" ? columns - line.width : 0;
     const top = index * (GLYPH_H + LINE_GAP);
-    line.cells.forEach((cell) => cells.push({ ...cell, col: cell.col + offset, row: cell.row + top }));
+    // 마지막 단어만 오른쪽 끝으로 (lastWordRight)
+    const lastShift = line.lastWordRight ? columns - line.width : 0;
+    line.cells.forEach((cell) => cells.push({
+      ...cell,
+      col: cell.col + offset + (cell.word === line.words ? lastShift : 0),
+      row: cell.row + top
+    }));
   });
 
   cells.sort((a, b) => a.row - b.row || a.col - b.col);
@@ -884,6 +892,7 @@ function fitGrid() {
   if (isFalling) return;
   const cell = Math.floor(Math.min(mosaic.clientWidth / COLUMNS, mosaic.clientHeight / ROWS) * 10) / 10;
   scene.style.setProperty("--cell", `${Math.max(cell, 4)}px`);
+  placeIntroInfo();
 
   // 유리의 흐림도 칸 크기에 맞춰 줄임 (창이 작아져도 글자가 보이게) — 큰 화면(칸 37px 이상)에서는 그대로
   // 크롬은 같은 값을 사파리보다 2.5~3배 강하게 흐리므로 1/3로 맞춤
@@ -891,6 +900,24 @@ function fitGrid() {
   const ratio = Math.pow(clamp(cell / 37.5, 0.25, 1), 1.3) * engine;
   document.documentElement.style.setProperty("--frost-blur", `${(9 * ratio).toFixed(2)}px`);
   document.documentElement.style.setProperty("--edge-blur", `${(16 * ratio).toFixed(2)}px`);
+}
+
+// 소개글 · START: BUILD의 B 왼쪽에 오른쪽 정렬 (글자 칸 단위로 위치 · 크기)
+function placeIntroInfo() {
+  const panelEl = document.querySelector(".garden-panel");
+  if (!panelEl) return;
+  const cellPx = parseFloat(scene.style.getPropertyValue("--cell")) || 20;
+  const panelRect = panelEl.getBoundingClientRect();
+  const sceneRect = scene.getBoundingClientRect();
+  // 격자는 장면 가운데 (translate -50%)
+  const gridLeft = sceneRect.left + sceneRect.width / 2 - (COLUMNS * cellPx) / 2;
+  const gridTop = sceneRect.top + sceneRect.height / 2 - (ROWS * cellPx) / 2;
+  const buildStart = Math.min(...letters.cells.filter((cell) => cell.row < GLYPH_H).map((cell) => cell.col));
+  const right = panelRect.right - (gridLeft + (buildStart - 0.9) * cellPx);
+  panelEl.style.setProperty("--g-cell", `${cellPx.toFixed(2)}px`);
+  panelEl.style.setProperty("--info-right", `${right.toFixed(1)}px`);
+  panelEl.style.setProperty("--info-top", `${(gridTop - panelRect.top + 1.75 * cellPx).toFixed(1)}px`);
+  panelEl.style.setProperty("--start-top", `${(gridTop - panelRect.top + 3.9 * cellPx).toFixed(1)}px`);
 }
 
 fitGrid();

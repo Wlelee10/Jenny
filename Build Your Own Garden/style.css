@@ -96,25 +96,28 @@ body {
 
 
 /* =========================================
-   INFORMATION (왼쪽 위)
+   INFORMATION (BUILD 왼쪽, 오른쪽 정렬)
+   JS가 글자 칸 크기(--g-cell)와 위치(--info-right · --info-top · --start-top)를 정함
 ========================================= */
 
 .intro-info {
   position: absolute;
-  left: clamp(26px, 5.6vw, 56px);
-  top: clamp(26px, 5.6vw, 52px);
+  right: var(--info-right, 60%);
+  top: var(--info-top, 20%);
   z-index: 3;
 
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, min(1.75vw, 2.9vh), 21px);
+  align-items: flex-end;
+  gap: calc(var(--g-cell, 40px) * 0.17);
+  text-align: right;
 
   pointer-events: none;
 }
 
 .intro-info p {
   margin: 0;
-  font-size: clamp(9px, min(1.32vw, 2.2vh), 18px); /* 창이 작아지면 함께 작아짐 */
+  font-size: calc(var(--g-cell, 40px) * 0.39); /* 글자 칸에 비례 → 창과 함께 커지고 작아짐 */
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.01em;
@@ -404,12 +407,12 @@ body.is-falling .glass {
    START
 ========================================= */
 
+/* 소개글 바로 아래, 오른쪽 정렬 · 회색 → 올리면 검정 */
 .start-button {
   position: absolute;
-  left: 50%;
-  bottom: clamp(18px, 3.2vh, 28px);
+  right: var(--info-right, 60%);
+  top: var(--start-top, 32%);
   z-index: 3;
-  transform: translateX(-50%);
 
   /* 기본 버튼 모양 제거 */
   padding: 0;
@@ -417,18 +420,18 @@ body.is-falling .glass {
   background: none;
   font-family: inherit;
 
-  color: var(--red);
-  font-size: clamp(10px, min(1.45vw, 2.4vh), 19px);
+  color: #9a9a9a;
+  font-size: calc(var(--g-cell, 40px) * 0.39);
   font-weight: 400;
   text-decoration: none;
   white-space: nowrap;
 
   cursor: pointer;
-  transition: opacity 180ms ease;
+  transition: color 180ms ease, opacity 180ms ease;
 }
 
 .start-button:hover {
-  opacity: 0.5;
+  color: var(--ink);
 }
 
 .start-button:focus-visible {
