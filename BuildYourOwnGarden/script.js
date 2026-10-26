@@ -194,6 +194,8 @@ const gateScene = {
   dots: null,              // Float32Array [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char] × n
   pointer: null,           // 마우스 위치
   exitAt: 0,               // 시작 버튼을 누른 시각 (손이 양쪽으로 들어감)
+  ripples: [],             // 손을 클릭한 곳에서 퍼지는 물결 [{ x, y, at }]
+  drift: [{ x: 0, y: 0 }, { x: 0, y: 0 }], // 지금 프레임의 손 위치 이동 (클릭 판정용)
   last: 0,
   running: false
 };
@@ -274,6 +276,9 @@ const STRIDE = 11; // [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char, hand]
 const IDLE_PERIOD = 7;      // 초. 한 번 떠올랐다 내려오는 시간
 const IDLE_FLICKER = 7;     // 1초에 0 · 1 로 반짝이는 점 수
 const GATE_EXIT_MS = 1500;  // 시작을 누른 뒤: 글이 사라지고 손이 양쪽으로 들어가는 시간 (그다음 영상 시작)
+const RIPPLE_RADIUS = 0.05; // 클릭 물결이 닿는 반경 (손 크기 k의 몇 배) — 클릭한 손 안에서만
+const RIPPLE_SPEED = 0.1;   // 클릭 물결이 퍼지는 속도 (1초에 손 크기 k의 몇 배)
+const RIPPLE_LIFE_MS = (RIPPLE_RADIUS / RIPPLE_SPEED) * 1000; // 반경 끝에 닿으면 사라짐
 
 function gateFrame(now, once) {
   const scene = gateScene;
@@ -302,6 +307,13 @@ function gateFrame(now, once) {
     drift[0].x -= e * width * 0.75;
     drift[1].x += e * width * 0.75;
   }
+  scene.drift = drift;
+
+  // 클릭 물결: 오래된 것은 지움
+  const rippleSpeed = RIPPLE_SPEED * k;
+  const rippleWidth = 0.018 * k;
+  const ripples = scene.ripples.filter((ripple) => now - ripple.at < RIPPLE_LIFE_MS);
+  scene.ripples = ripples;
 
   // 가끔 아무 점이나 0 · 1 로 반짝 (입장 화면이 보일 때만)
   const gateOpen = gateArt.isConnected && !gateArt.closest("[hidden]");
@@ -350,6 +362,26 @@ function gateFrame(now, once) {
       }
       // 바로 아래 점: 0 또는 1 로
       if (Math.hypot(hx - pointer.x, hy - pointer.y) < binary) {
+        if (bit < 0.05) dots[i + 9] = Math.random() < 0.5 ? 0 : 1;
+        bit = 1;
+      }
+    }
+    // 물결이 지나가는 점: 바깥으로 밀려나고 잠깐 0 · 1 로
+    for (const ripple of ripples) {
+      if (ripple.hand !== dots[i + 10]) continue; // 클릭한 손만
+      const age = (now - ripple.at) / 1000;
+      const dx = dots[i] - ripple.x;
+      const dy = dots[i + 1] - ripple.y;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d > RIPPLE_RADIUS * k) continue; // 정해진 구역 밖은 그대로
+      const gap = Math.abs(d - age * rippleSpeed);
+      if (gap > rippleWidth) continue;
+      const ring = 1 - gap / rippleWidth;
+      const decay = 1 - (age * 1000) / RIPPLE_LIFE_MS;
+      const kick = strength * 1.2 * ring * decay;
+      fx += (dx / d) * kick;
+      fy += (dy / d) * kick;
+      if (ring > 0.5 && decay > 0.2) {
         if (bit < 0.05) dots[i + 9] = Math.random() < 0.5 ? 0 : 1;
         bit = 1;
       }
@@ -405,13 +437,40 @@ function wakeGate() {
 }
 
 const gateLayer = document.querySelector("#openingGate");
+// 이 위치가 어느 손(점) 위인지: 0 왼손, 1 오른손, -1 손 밖
+function handAt(x, y) {
+  const scene = gateScene;
+  if (!scene.ready || scene.exitAt) return -1;
+  const reach = 0.012 * scene.k;
+  const { dots, drift } = scene;
+  for (let i = 0; i < dots.length; i += STRIDE) {
+    if (dots[i + 3] < 0.3) continue; // 글 근처의 흐린 점은 제외
+    const sway = drift[dots[i + 10]];
+    if (Math.abs(dots[i] + sway.x - x) < reach && Math.abs(dots[i + 1] + sway.y - y) < reach) return dots[i + 10];
+  }
+  return -1;
+}
+
 gateLayer?.addEventListener("pointermove", (event) => {
   if (event.pointerType === "touch") return;
   gateScene.pointer = { x: event.clientX, y: event.clientY };
+  gateLayer.classList.toggle("is-over-hand", !event.target.closest("button") && handAt(event.clientX, event.clientY) >= 0);
   wakeGate();
 });
 gateLayer?.addEventListener("pointerleave", () => {
   gateScene.pointer = null;
+  gateLayer.classList.remove("is-over-hand");
+  wakeGate();
+});
+// 손을 클릭(터치)하면 그 자리에서 물결이 퍼짐
+gateLayer?.addEventListener("pointerdown", (event) => {
+  if (event.target.closest("button")) return;
+  const hand = handAt(event.clientX, event.clientY);
+  if (hand < 0) return;
+  // 손이 숨 쉬며 움직여도 같은 자리에서 퍼지도록, 손 기준 좌표로 저장
+  const sway = gateScene.drift[hand];
+  gateScene.ripples.push({ x: event.clientX - sway.x, y: event.clientY - sway.y, hand, at: performance.now() });
+  if (gateScene.ripples.length > 4) gateScene.ripples.shift();
   wakeGate();
 });
 

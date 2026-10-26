@@ -492,6 +492,15 @@ body.is-falling .glass {
 
   background: #ffffff;
   color: var(--ink);
+
+  /* 소개글은 드래그로 선택되지 않게 */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.opening-gate.is-over-hand {
+  cursor: pointer;
 }
 
 .opening-gate[hidden] {
