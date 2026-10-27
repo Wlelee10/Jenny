@@ -1135,8 +1135,9 @@
   function moveItems(event, point) {
     const single = action.single;
 
-    // 한 조각만 들고 캔버스 밖으로 나가면 잘리지 않은 모습으로 들고 다님
-    if (single && !insideCanvas(event.clientX, event.clientY)) {
+    // 한 조각만 들고, 그 조각의 상자가 캔버스 밖으로 완전히 다 나가면 잘리지 않은 모습으로 들고 다님
+    // (마우스만 밖에 있고 조각이 캔버스에 걸쳐 있으면 계속 캔버스 안에서 움직임)
+    if (single && outsideCanvas(single, point)) {
       const scale = canvasScale();
       const offsetX = action.start.x - action.items[0].x;
       const offsetY = action.start.y - action.items[0].y;
@@ -1189,6 +1190,15 @@
       item.x = x + dx;
       item.y = y + dy;
     });
+  }
+
+  // 마우스를 point 로 옮겼을 때 조각의 (회전된) 상자가 캔버스와 전혀 겹치지 않는지
+  function outsideCanvas(item, point) {
+    const start = action.items[0];
+    const x = start.x + point.x - action.start.x;
+    const y = start.y + point.y - action.start.y;
+    const { hw, hh } = extents(item.w, item.h, item.rotation);
+    return x + hw <= 0 || x - hw >= UNITS || y + hh <= 0 || y - hh >= UNITS;
   }
 
   function resizeItem(event, point) {
@@ -2942,6 +2952,12 @@
     if (event.target.closest(".sel-frame, .library-cell, .info, .layers")) return;
     // (잠금 · 보기 아이콘은 누르는 순간 새로 그려져 문서에서 빠지므로, 누른 경로로 확인)
     if (event.composedPath().includes(layersPanel)) return;
+    // 펜으로 그리는 중: 캔버스 밖 빈 곳을 눌러도 취소하지 않고 그 자리에 점을 찍음
+    if (cutting && event.button === 0 && !event.target.closest(".library, .info, button, input")) {
+      event.preventDefault();
+      startCutPath(event);
+      return;
+    }
     exitModes();
     setSelection([]);
   });
