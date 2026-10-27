@@ -73,7 +73,7 @@
 
 .builder:not(.is-ready) .ui {
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(calc(16 * var(--u)));
 }
 
 .builder.is-ready .ui {
@@ -132,7 +132,7 @@
 
 /* 들고 있는 조각: 살짝 떠 있는 그림자 */
 .drag-ghost img {
-  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(0 calc(14 * var(--u)) calc(16 * var(--u)) rgba(0, 0, 0, 0.22));
 }
 
 .drag-ghost {
@@ -142,7 +142,7 @@
 /* 캔버스에서 끌어낸 조각: 자른 모양 그대로 */
 .drag-ghost.is-cropped {
   overflow: hidden;
-  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(0 calc(14 * var(--u)) calc(16 * var(--u)) rgba(0, 0, 0, 0.22));
 }
 
 .drag-ghost.is-cropped img {
@@ -158,17 +158,17 @@
 .work-panel {
   z-index: 2;
 
-  border-radius: 40px;
+  border-radius: calc(40 * var(--u));
   background: var(--builder-panel);
 
-  -webkit-backdrop-filter: blur(22px) saturate(1.1);
-  backdrop-filter: blur(22px) saturate(1.1);
+  -webkit-backdrop-filter: blur(calc(22 * var(--u))) saturate(1.1);
+  backdrop-filter: blur(calc(22 * var(--u))) saturate(1.1);
 
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 -1px 0 rgba(0, 0, 0, 0.03),
     0 0 0 1px rgba(0, 0, 0, 0.025),
-    0 30px 60px -44px rgba(0, 0, 0, 0.3);
+    0 calc(30 * var(--u)) calc(60 * var(--u)) calc(-44 * var(--u)) rgba(0, 0, 0, 0.3);
 }
 
 
@@ -193,8 +193,8 @@
   position: absolute;
   left: 0;
   top: 0;
-  width: 1000px;
-  height: 1000px;
+  width: calc(1000 * var(--u));
+  height: calc(1000 * var(--u));
 
   transform-origin: 0 0;
   transition: transform var(--layout-ms) var(--ease-out);
@@ -271,7 +271,7 @@
 }
 
 .canvas-item:hover {
-  outline: 2px solid var(--select-soft);
+  outline: calc(2 * var(--u)) solid var(--select-soft);
 }
 
 .canvas-item.is-lifted {
@@ -319,9 +319,9 @@
 
 /* 크기 조절: 네 모서리의 작은 사각형 */
 .sel-handle {
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
+  width: calc(10 * var(--u));
+  height: calc(10 * var(--u));
+  margin: calc(-5 * var(--u)) 0 0 calc(-5 * var(--u));
 
   background: #ffffff;
   border: 1.5px solid var(--select);
@@ -330,9 +330,9 @@
 
 /* 회전: 모서리 바깥쪽의 보이지 않는 영역 */
 .sel-rotate {
-  width: 26px;
-  height: 26px;
-  margin: -13px 0 0 -13px;
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  margin: calc(-13 * var(--u)) 0 0 calc(-13 * var(--u));
 
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 9.5A7 7 0 0 1 18.5 8' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M6 9.5A7 7 0 0 1 18.5 8' fill='none' stroke='%23111' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M19.5 4.5v4.2h-4.2' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M19.5 4.5v4.2h-4.2' fill='none' stroke='%23111' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, grab;
 }
@@ -346,10 +346,10 @@
 .sel-handle[data-sy="1"],
 .sel-rotate[data-sy="1"] { top: 100%; }
 
-.sel-rotate[data-sx="-1"] { transform: translateX(-9px); }
-.sel-rotate[data-sx="1"] { transform: translateX(9px); }
-.sel-rotate[data-sy="-1"] { translate: 0 -9px; }
-.sel-rotate[data-sy="1"] { translate: 0 9px; }
+.sel-rotate[data-sx="-1"] { transform: translateX(calc(-9 * var(--u))); }
+.sel-rotate[data-sx="1"] { transform: translateX(calc(9 * var(--u))); }
+.sel-rotate[data-sy="-1"] { translate: 0 calc(-9 * var(--u)); }
+.sel-rotate[data-sy="1"] { translate: 0 calc(9 * var(--u)); }
 
 /* 변: 그 방향으로만 크기 조절 */
 .sel-edge {
@@ -359,10 +359,10 @@
 
 .sel-edge[data-sy="-1"],
 .sel-edge[data-sy="1"] {
-  left: 8px;
-  right: 8px;
-  height: 10px;
-  margin-top: -5px;
+  left: calc(8 * var(--u));
+  right: calc(8 * var(--u));
+  height: calc(10 * var(--u));
+  margin-top: calc(-5 * var(--u));
 }
 
 .sel-edge[data-sy="-1"] { top: 0; }
@@ -370,10 +370,10 @@
 
 .sel-edge[data-sx="-1"],
 .sel-edge[data-sx="1"] {
-  top: 8px;
-  bottom: 8px;
-  width: 10px;
-  margin-left: -5px;
+  top: calc(8 * var(--u));
+  bottom: calc(8 * var(--u));
+  width: calc(10 * var(--u));
+  margin-left: calc(-5 * var(--u));
 }
 
 .sel-edge[data-sx="-1"] { left: 0; }
@@ -393,14 +393,14 @@
 
 /* 자르기: 두꺼운 테두리 + 막대 모양 핸들 */
 .sel-frame.is-crop {
-  border-width: 2px;
+  border-width: calc(2 * var(--u));
 }
 
 .sel-frame.is-crop .sel-handle {
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border-width: 2px;
+  width: calc(12 * var(--u));
+  height: calc(12 * var(--u));
+  margin: calc(-6 * var(--u)) 0 0 calc(-6 * var(--u));
+  border-width: calc(2 * var(--u));
 }
 
 .sel-frame.is-crop .sel-edge::after {
@@ -411,24 +411,24 @@
 
   background: #ffffff;
   border: 1.5px solid var(--select);
-  border-radius: 2px;
+  border-radius: calc(2 * var(--u));
   transform: translate(-50%, -50%);
 }
 
 .sel-frame.is-crop .sel-edge[data-sy]::after {
-  width: 22px;
-  height: 6px;
+  width: calc(22 * var(--u));
+  height: calc(6 * var(--u));
 }
 
 .sel-frame.is-crop .sel-edge[data-sx="-1"]::after,
 .sel-frame.is-crop .sel-edge[data-sx="1"]::after {
-  width: 6px;
-  height: 22px;
+  width: calc(6 * var(--u));
+  height: calc(22 * var(--u));
 }
 
 .sel-frame.is-crop .sel-edge[data-sy="0"]::after {
-  width: 6px;
-  height: 22px;
+  width: calc(6 * var(--u));
+  height: calc(22 * var(--u));
 }
 
 .sel-outline {
@@ -536,7 +536,7 @@
   fill: var(--select);
   stroke: #ffffff;
   stroke-width: 1.5;
-  filter: drop-shadow(0 0 2px rgba(134, 189, 255, 0.9));
+  filter: drop-shadow(0 0 calc(2 * var(--u)) rgba(134, 189, 255, 0.9));
 }
 
 /* 영역 선택 */
@@ -559,12 +559,12 @@
   left: 0;
   top: 0;
 
-  padding: 3px 7px;
-  border-radius: 4px;
+  padding: calc(3 * var(--u)) calc(7 * var(--u));
+  border-radius: calc(4 * var(--u));
 
   background: var(--select);
   color: #ffffff;
-  font-size: 10px;
+  font-size: calc(10 * var(--u));
   line-height: 1.2;
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -609,7 +609,7 @@
   display: flex;
   flex-direction: column;
 
-  border-radius: 10px;
+  border-radius: calc(10 * var(--u));
   background: var(--builder-tool);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
@@ -636,16 +636,16 @@
 }
 
 .tool:first-child {
-  border-radius: 10px 10px 0 0;
+  border-radius: calc(10 * var(--u)) calc(10 * var(--u)) 0 0;
 }
 
 .tool:last-child {
-  border-radius: 0 0 10px 10px;
+  border-radius: 0 0 calc(10 * var(--u)) calc(10 * var(--u));
 }
 
 .tool svg {
-  width: 18px;
-  height: 18px;
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
 
   fill: none;
   stroke: currentColor;
@@ -685,7 +685,7 @@
 .tool:focus-visible,
 .finish-button:focus-visible {
   outline: 1px solid var(--ink);
-  outline-offset: 2px;
+  outline-offset: calc(2 * var(--u));
 }
 
 /* 툴 이름 + 단축키 (툴바 왼쪽에 — 캔버스를 가리지 않게) */
@@ -693,20 +693,20 @@
   content: attr(data-tip);
 
   position: absolute;
-  right: calc(100% + 10px);
+  right: calc(100% + calc(10 * var(--u)));
   top: 50%;
 
-  padding: 4px 7px;
-  border-radius: 4px;
+  padding: calc(4 * var(--u)) calc(7 * var(--u));
+  border-radius: calc(4 * var(--u));
 
   background: rgba(17, 17, 17, 0.86);
   color: #ffffff;
-  font-size: 10px;
+  font-size: calc(10 * var(--u));
   letter-spacing: 0.04em;
   white-space: nowrap;
 
   opacity: 0;
-  transform: translate(4px, -50%);
+  transform: translate(calc(4 * var(--u)), -50%);
   pointer-events: none;
   transition: opacity 140ms ease, transform 140ms ease;
 }
@@ -745,7 +745,7 @@
 }
 
 .info-stats p {
-  margin: 0 0 9px;
+  margin: 0 0 calc(9 * var(--u));
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
 }
@@ -784,23 +784,23 @@
   display: flex;
   flex-direction: column;
 
-  border-radius: 40px;
+  border-radius: calc(40 * var(--u));
   background: var(--builder-panel);
 
-  -webkit-backdrop-filter: blur(22px) saturate(1.1);
-  backdrop-filter: blur(22px) saturate(1.1);
+  -webkit-backdrop-filter: blur(calc(22 * var(--u))) saturate(1.1);
+  backdrop-filter: blur(calc(22 * var(--u))) saturate(1.1);
 
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     0 0 0 1px rgba(0, 0, 0, 0.025),
-    0 30px 60px -44px rgba(0, 0, 0, 0.3);
+    0 calc(30 * var(--u)) calc(60 * var(--u)) calc(-44 * var(--u)) rgba(0, 0, 0, 0.3);
 }
 
 .library-title {
   margin: 0;
-  padding: 26px 20px 8px;
+  padding: calc(26 * var(--u)) calc(20 * var(--u)) calc(8 * var(--u));
 
-  font-size: 13px;
+  font-size: calc(13 * var(--u));
   letter-spacing: 0.02em;
   text-align: center;
 }
@@ -810,8 +810,8 @@
 .library-filter {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 12px 12px;
+  gap: calc(4 * var(--u));
+  padding: 0 calc(12 * var(--u)) calc(12 * var(--u));
 }
 
 .filter-track {
@@ -823,7 +823,7 @@
   min-width: 0;
 
   display: flex;
-  gap: 11px;
+  gap: calc(11 * var(--u));
 
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -851,8 +851,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 14px;
-  height: 16px;
+  width: calc(14 * var(--u));
+  height: calc(16 * var(--u));
   padding: 0;
 
   border: 0;
@@ -865,8 +865,8 @@
 }
 
 .filter-arrow svg {
-  width: 5px;
-  height: 8px;
+  width: calc(5 * var(--u));
+  height: calc(8 * var(--u));
   fill: none;
   stroke: currentColor;
   stroke-width: 1.1;
@@ -886,18 +886,18 @@
 
 .filter-track button {
   flex: none;
-  padding: 2px 0;
+  padding: calc(2 * var(--u)) 0;
 
   border: 0;
   background: none;
   color: #8c8c8c;
   font: inherit;
-  font-size: 9px;
+  font-size: calc(9 * var(--u));
   letter-spacing: 0.06em;
   white-space: nowrap;
   text-decoration: underline;
   text-decoration-color: transparent;
-  text-underline-offset: 3px;
+  text-underline-offset: calc(3 * var(--u));
   cursor: pointer;
 
   transition: color 160ms ease, text-decoration-color 160ms ease;
@@ -920,8 +920,8 @@
 .library-scroll {
   flex: 1;
   min-height: 0;
-  margin: 0 10px 22px 16px;
-  padding-right: 6px;
+  margin: 0 calc(10 * var(--u)) calc(22 * var(--u)) calc(16 * var(--u));
+  padding-right: calc(6 * var(--u));
 
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -931,18 +931,18 @@
 }
 
 .library-scroll::-webkit-scrollbar {
-  width: 4px;
+  width: calc(4 * var(--u));
 }
 
 .library-scroll::-webkit-scrollbar-thumb {
-  border-radius: 2px;
+  border-radius: calc(2 * var(--u));
   background: #cfcfcf;
 }
 
 .library-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
+  gap: calc(4 * var(--u));
 }
 
 /* 창이 좁아 라이브러리가 좁을 때는 한 줄에 3개 */
@@ -959,7 +959,7 @@
   padding: 7% 7% 5%;
 
   border: 0;
-  border-radius: 10px;
+  border-radius: calc(10 * var(--u));
   background: none;
   cursor: grab;
 
@@ -984,7 +984,7 @@
 }
 
 .cell-number {
-  font-size: 9px;
+  font-size: calc(9 * var(--u));
   line-height: 1.2;
   letter-spacing: 0.04em;
   color: #8c8c8c;
@@ -1020,15 +1020,15 @@
   position: absolute;
   z-index: 35;
 
-  padding: 12px;
-  border-radius: 14px;
+  padding: calc(12 * var(--u));
+  border-radius: calc(14 * var(--u));
 
   background: rgba(250, 250, 250, 0.94);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(calc(16 * var(--u)));
+  backdrop-filter: blur(calc(16 * var(--u)));
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.05),
-    0 18px 40px -18px rgba(0, 0, 0, 0.28);
+    0 calc(18 * var(--u)) calc(40 * var(--u)) calc(-18 * var(--u)) rgba(0, 0, 0, 0.28);
 
   animation: popover-in 180ms var(--ease-out);
 }
@@ -1040,23 +1040,23 @@
 @keyframes popover-in {
   from {
     opacity: 0;
-    transform: translateX(6px);
+    transform: translateX(calc(6 * var(--u)));
   }
 }
 
 .swatches {
   display: grid;
-  grid-template-columns: repeat(5, 22px);
-  gap: 7px;
+  grid-template-columns: repeat(5, calc(22 * var(--u)));
+  gap: calc(7 * var(--u));
 }
 
 .swatch {
-  width: 22px;
-  height: 22px;
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
   padding: 0;
 
   border: 0;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--u));
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
   cursor: pointer;
 
@@ -1070,34 +1070,34 @@
 .swatch.is-current {
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, 0.1),
-    0 0 0 2px #fafafa,
-    0 0 0 3.5px var(--select);
+    0 0 0 calc(2 * var(--u)) #fafafa,
+    0 0 0 calc(3.5 * var(--u)) var(--select);
 }
 
 .popover-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
+  margin-top: calc(10 * var(--u));
 }
 
 .custom-color {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: calc(8 * var(--u));
 
-  font-size: 10px;
+  font-size: calc(10 * var(--u));
   letter-spacing: 0.06em;
   cursor: pointer;
 }
 
 .custom-color input {
-  width: 22px;
-  height: 22px;
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
   padding: 0;
 
   border: 0;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--u));
   background: none;
   cursor: pointer;
 }
@@ -1108,21 +1108,21 @@
 
 .custom-color input::-webkit-color-swatch {
   border: 0;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--u));
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 .eyedropper-button {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px 3px 5px;
+  gap: calc(5 * var(--u));
+  padding: calc(3 * var(--u)) calc(8 * var(--u)) calc(3 * var(--u)) calc(5 * var(--u));
 
   border: 0;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--u));
   background: rgba(0, 0, 0, 0.05);
   color: var(--ink);
-  font-size: 10px;
+  font-size: calc(10 * var(--u));
   letter-spacing: 0.06em;
   cursor: pointer;
 
@@ -1134,8 +1134,8 @@
 }
 
 .eyedropper-button svg {
-  width: 16px;
-  height: 16px;
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
 
   fill: none;
   stroke: currentColor;
@@ -1145,8 +1145,8 @@
 }
 
 .current-color {
-  margin: 10px 0 0;
-  font-size: 10px;
+  margin: calc(10 * var(--u)) 0 0;
+  font-size: calc(10 * var(--u));
   letter-spacing: 0.06em;
   color: #6a6a6a;
   font-variant-numeric: tabular-nums;
@@ -1171,13 +1171,13 @@
 
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 4px;
+  gap: calc(8 * var(--u));
+  padding: calc(4 * var(--u)) calc(10 * var(--u)) calc(4 * var(--u)) calc(4 * var(--u));
 
-  border-radius: 999px;
+  border-radius: calc(999 * var(--u));
   background: rgba(17, 17, 17, 0.86);
   color: #ffffff;
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 
@@ -1189,10 +1189,10 @@
 }
 
 .loupe-swatch {
-  width: 24px;
-  height: 24px;
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
   border-radius: 50%;
-  box-shadow: 0 0 0 2px #ffffff;
+  box-shadow: 0 0 0 calc(2 * var(--u)) #ffffff;
 }
 
 
@@ -1208,7 +1208,7 @@
   flex-direction: column;
   overflow: hidden;
 
-  border-radius: 10px;
+  border-radius: calc(10 * var(--u));
   background: var(--builder-tool);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
@@ -1217,30 +1217,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 0 7px 0 12px;
+  gap: calc(8 * var(--u));
+  padding: 0 calc(7 * var(--u)) 0 calc(12 * var(--u));
 
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.06);
 }
 
 .layers-title {
   margin: 0;
-  padding: 9px 0 8px;
+  padding: calc(9 * var(--u)) 0 calc(8 * var(--u));
 
-  font-size: 10px;
+  font-size: calc(10 * var(--u));
   letter-spacing: 0.08em;
   color: #6a6a6a;
 }
 
 /* 여러 개를 고르면 GROUP · 그룹 하나를 고르면 UNGROUP */
 .layers-group {
-  padding: 3px 6px;
+  padding: calc(3 * var(--u)) calc(6 * var(--u));
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--u));
   background: none;
 
   font-family: inherit;
-  font-size: 9px;
+  font-size: calc(9 * var(--u));
   letter-spacing: 0.06em;
   color: var(--ink);
   cursor: pointer;
@@ -1260,7 +1260,7 @@
 .layers-list {
   flex: 1;
   min-height: 0;
-  padding: 4px;
+  padding: calc(4 * var(--u));
 
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1275,7 +1275,7 @@
   top: 50%;
   margin: 0;
 
-  font-size: 10px;
+  font-size: calc(10 * var(--u));
   line-height: 1.5;
   letter-spacing: 0.04em;
   color: #9a9a9a;
@@ -1296,11 +1296,11 @@
 
   display: flex;
   align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 2px 0 4px;
+  gap: calc(5 * var(--u));
+  height: calc(28 * var(--u));
+  padding: 0 calc(2 * var(--u)) 0 calc(4 * var(--u));
 
-  border-radius: 6px;
+  border-radius: calc(6 * var(--u));
   cursor: default;
 
   transition: background-color 120ms ease, transform 180ms var(--ease-out);
@@ -1321,7 +1321,7 @@
   background: #d6e8ff;
   box-shadow:
     0 0 0 1px rgba(80, 150, 240, 0.45),
-    0 10px 22px -8px rgba(0, 0, 0, 0.35);
+    0 calc(10 * var(--u)) calc(22 * var(--u)) calc(-8 * var(--u)) rgba(0, 0, 0, 0.35);
   transition: none;
 }
 
@@ -1334,9 +1334,9 @@
 /* 그룹 펼치기 / 접기 (조각 줄에서는 빈 칸) */
 .layer-caret {
   flex: none;
-  width: 12px;
-  height: 18px;
-  margin-right: -3px;
+  width: calc(12 * var(--u));
+  height: calc(18 * var(--u));
+  margin-right: calc(-3 * var(--u));
   padding: 0;
 
   display: grid;
@@ -1353,8 +1353,8 @@
 }
 
 .layer-caret svg {
-  width: 11px;
-  height: 11px;
+  width: calc(11 * var(--u));
+  height: calc(11 * var(--u));
 
   fill: none;
   stroke: currentColor;
@@ -1371,13 +1371,13 @@
 
 /* 그룹 안의 줄: 안쪽으로 들여쓰기 */
 .layer-row.is-child {
-  padding-left: 16px;
+  padding-left: calc(16 * var(--u));
 }
 
 .layer-row.is-child::before {
   content: "";
   position: absolute;
-  left: 10px;
+  left: calc(10 * var(--u));
   top: 0;
   bottom: 0;
   width: 1px;
@@ -1386,8 +1386,8 @@
 
 .layer-icon {
   flex: none;
-  width: 18px;
-  height: 18px;
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
 
   display: grid;
   place-items: center;
@@ -1395,8 +1395,8 @@
 }
 
 .layer-icon svg {
-  width: 16px;
-  height: 16px;
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
 
   fill: rgba(0, 0, 0, 0.04);
   stroke: currentColor;
@@ -1406,8 +1406,8 @@
 
 .layer-thumb {
   flex: none;
-  width: 18px;
-  height: 18px;
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
   object-fit: contain;
   pointer-events: none;
 }
@@ -1416,17 +1416,17 @@
 .layer-rename {
   flex: 1;
   min-width: 0;
-  height: 20px;
-  margin: 0 0 0 -3px;
-  padding: 0 3px;
+  height: calc(20 * var(--u));
+  margin: 0 0 0 calc(-3 * var(--u));
+  padding: 0 calc(3 * var(--u));
 
   border: 1px solid var(--select);
-  border-radius: 4px;
+  border-radius: calc(4 * var(--u));
   outline: none;
   background: #ffffff;
 
   font-family: inherit;
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   color: var(--ink);
 }
 
@@ -1438,7 +1438,7 @@
   flex: 1;
   min-width: 0;
 
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1452,15 +1452,15 @@
 
 .layer-button {
   flex: none;
-  width: 20px;
-  height: 22px;
+  width: calc(20 * var(--u));
+  height: calc(22 * var(--u));
   padding: 0;
 
   display: grid;
   place-items: center;
 
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--u));
   background: none;
   color: #6a6a6a;
   cursor: pointer;
@@ -1480,8 +1480,8 @@
 }
 
 .layer-button svg {
-  width: 14px;
-  height: 14px;
+  width: calc(14 * var(--u));
+  height: calc(14 * var(--u));
 
   fill: none;
   stroke: currentColor;
@@ -1493,8 +1493,8 @@
 /* 잠금: 잠기면 진한 꽉 찬 자물쇠(구멍만 흰색), 열리면 얇은 빈 자물쇠 — 한눈에 구분되게 */
 .layer-button svg.icon-lock,
 .layer-button svg.icon-unlock {
-  width: 15px;
-  height: 15px;
+  width: calc(15 * var(--u));
+  height: calc(15 * var(--u));
   stroke-width: 1.5;
 }
 

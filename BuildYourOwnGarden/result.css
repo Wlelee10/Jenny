@@ -15,7 +15,7 @@
 
   background-color: #ffffff;
   color: var(--ink);
-  font-size: 12px;
+  font-size: calc(12 * var(--u));
   letter-spacing: 0.02em;
 
   transition: background-color 700ms ease;
@@ -120,8 +120,8 @@
 
 .another-ring {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: calc(46 * var(--u));
+  height: calc(46 * var(--u));
   animation: loader-spin 2.8s linear infinite;
 }
 
@@ -130,7 +130,7 @@
   left: 50%;
   top: 50%;
   font-family: "Courier New", Courier, monospace;
-  font-size: 9px;
+  font-size: calc(9 * var(--u));
   font-weight: 700;
   line-height: 1;
   color: #d4d4d4;
@@ -156,14 +156,14 @@
 
 .result-shell {
   position: absolute;
-  inset: clamp(12px, 2.4vh, 28px) clamp(12px, 1.8vw, 36px);
+  inset: clamp(calc(12 * var(--u)), 2.4vh, calc(28 * var(--u))) clamp(calc(12 * var(--u)), 1.8vw, calc(36 * var(--u)));
 
-  border-radius: 44px;
+  border-radius: calc(44 * var(--u));
   background-color: #f4f4f4;
   box-shadow:
     inset 0 1px 0 #ffffff,
     0 0 0 1px rgba(0, 0, 0, 0.03),
-    0 30px 60px -44px rgba(0, 0, 0, 0.3);
+    0 calc(30 * var(--u)) calc(60 * var(--u)) calc(-44 * var(--u)) rgba(0, 0, 0, 0.3);
 
   transition:
     background-color 700ms ease 120ms,
@@ -173,9 +173,9 @@
 .folders {
   position: absolute;
   left: 50%;
-  top: calc(40px + 4vh);
+  top: calc(calc(40 * var(--u)) + 4vh);
   bottom: 6%;
-  width: min(72%, 1500px);
+  width: min(72%, calc(1500 * var(--u)));
   transform: translateX(-50%);
 }
 
@@ -186,7 +186,7 @@
   inset: 0;
   z-index: 1;
 
-  border-radius: 16px;
+  border-radius: calc(16 * var(--u));
   background-color: var(--folder-color);
 
   transition:
@@ -209,7 +209,7 @@
 
 /* 뒤에 있는 폴더의 탭에 올리면 파일이 살짝 올라옴 */
 .folder:not(.is-active):has(> .folder-tab:hover) {
-  transform: translateY(-10px);
+  transform: translateY(calc(-10 * var(--u)));
 }
 
 
@@ -224,15 +224,15 @@
   left: var(--tab-x);
   isolation: isolate;
 
-  width: clamp(110px, 11%, 160px);
-  height: 30px;
-  padding: 3px 0 0;
+  width: clamp(calc(110 * var(--u)), 11%, calc(160 * var(--u)));
+  height: calc(30 * var(--u));
+  padding: calc(3 * var(--u)) 0 0;
 
   border: 0;
   background: none;
   color: #5c5c5c;
   font-family: inherit;
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   letter-spacing: 0.04em;
   white-space: nowrap;
   cursor: pointer;
@@ -244,12 +244,12 @@
 .folder-tab::before {
   content: "";
   position: absolute;
-  inset: 0 -4px;
+  inset: 0 calc(-4 * var(--u));
   z-index: -1;
 
-  border-radius: 9px 9px 0 0;
+  border-radius: calc(9 * var(--u)) calc(9 * var(--u)) 0 0;
   background-color: var(--folder-color);
-  transform: perspective(60px) rotateX(12deg);
+  transform: perspective(calc(60 * var(--u))) rotateX(12deg);
   transform-origin: bottom;
 
   transition: background-color 700ms ease 220ms;
@@ -270,7 +270,7 @@
 
 .folder-tab:focus-visible {
   outline: 1px solid var(--ink);
-  outline-offset: 2px;
+  outline-offset: calc(2 * var(--u));
 }
 
 /* 앞에 있는 폴더의 내용만 조작 */
@@ -284,15 +284,15 @@
 .back-button {
   position: absolute;
   right: 0;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + calc(8 * var(--u)));
   z-index: 20;
 
-  padding: 4px 0;
+  padding: calc(4 * var(--u)) 0;
   border: 0;
   background: none;
   color: #9a9a9a;
   font-family: inherit;
-  font-size: 12px;
+  font-size: calc(12 * var(--u));
   letter-spacing: 0.04em;
   cursor: pointer;
 
@@ -306,7 +306,7 @@
 
 .back-button:focus-visible {
   outline: 1px solid var(--ink);
-  outline-offset: 3px;
+  outline-offset: calc(3 * var(--u));
 }
 
 .back-button[hidden] {
@@ -321,13 +321,13 @@
 
 .build-view {
   position: absolute;
-  inset: clamp(16px, 2.6%, 30px);
+  inset: clamp(calc(16 * var(--u)), 2.6%, calc(30 * var(--u)));
   container-type: size;
 
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(28px, 4.5%, 64px);
+  gap: clamp(calc(28 * var(--u)), 4.5%, calc(64 * var(--u)));
 }
 
 .result-canvas {
@@ -362,7 +362,7 @@
 .title-field {
   display: inline-flex;
   align-items: baseline;
-  gap: 3px;
+  gap: calc(3 * var(--u));
   max-width: 100%;
   cursor: text;
 }
@@ -370,7 +370,7 @@
 .title-field input {
   min-width: 0;
   max-width: 100%;
-  padding: 0 0 2px;
+  padding: 0 0 calc(2 * var(--u));
 
   border: 0;
   border-bottom: 1px dashed transparent;
@@ -427,7 +427,7 @@
 .title-caret {
   display: none;
   align-self: center;
-  width: 2px;
+  width: calc(2 * var(--u));
   height: 0.95em;
   margin-left: -1px;
   background: var(--field-gray);
@@ -442,7 +442,7 @@
 
 /* 만든 사람: 이름 칸 바로 아래 */
 .creator-field {
-  margin-top: 6px;
+  margin-top: calc(6 * var(--u));
 }
 
 /* 이름 없이 SAVE 를 누르면 살짝 흔들림 */
@@ -452,10 +452,10 @@
 
 @keyframes title-nudge {
   0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(5px); }
-  60% { transform: translateX(-3px); }
-  80% { transform: translateX(2px); }
+  20% { transform: translateX(calc(-6 * var(--u))); }
+  40% { transform: translateX(calc(5 * var(--u))); }
+  60% { transform: translateX(calc(-3 * var(--u))); }
+  80% { transform: translateX(calc(2 * var(--u))); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -467,27 +467,27 @@
 
 /* 오른쪽 정보: 이름 칸 12px / 시간 · 숫자 11px 굵게 — 숫자 칸은 오른쪽 정렬, 글자 칸은 왼쪽 정렬 */
 .result-info {
-  font-size: 12px;
+  font-size: calc(12 * var(--u));
 }
 
 .result-time,
 .result-stats {
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   font-weight: 700;
   letter-spacing: 0.03em;
 }
 
 .result-time {
-  margin: 24px 0 0;
+  margin: calc(24 * var(--u)) 0 0;
   font-variant-numeric: tabular-nums;
 }
 
 .result-stats {
   display: grid;
   grid-template-columns: max-content auto;
-  column-gap: 20px;
-  row-gap: 4px;
-  margin: 12px 0 0;
+  column-gap: calc(20 * var(--u));
+  row-gap: calc(4 * var(--u));
+  margin: calc(12 * var(--u)) 0 0;
 }
 
 .result-stats > div {
@@ -507,22 +507,22 @@
 /* 200 AI GARDENS · 1 GARDEN: 한 칸 띄우고 조금 크게 */
 .result-stats .result-total dt,
 .result-stats .result-total dd {
-  padding-top: 14px;
+  padding-top: calc(14 * var(--u));
 }
 
 
 
 /* SAVE & SHARE: 회색 버튼 · 회색 글자 → 올리면 테두리가 검정 */
 .save-button {
-  margin-top: 22px;
-  padding: 7px 16px;
+  margin-top: calc(22 * var(--u));
+  padding: calc(7 * var(--u)) calc(16 * var(--u));
 
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: calc(3 * var(--u));
   background: #d6d6d6;
   color: #8a8a8a;
   font: inherit;
-  font-size: 10px;
+  font-size: calc(10 * var(--u));
   letter-spacing: 0.04em;
   cursor: pointer;
 
@@ -546,13 +546,13 @@
 .dialog-button:focus-visible,
 .dialog-close:focus-visible {
   outline: 1px solid var(--ink);
-  outline-offset: 2px;
+  outline-offset: calc(2 * var(--u));
 }
 
 .save-note {
   min-height: 1em;
-  margin: 8px 0 0;
-  font-size: 10px;
+  margin: calc(8 * var(--u)) 0 0;
+  font-size: calc(10 * var(--u));
   color: #8a8a8a;
 }
 
@@ -564,30 +564,30 @@
 
 .folder-scroll {
   position: absolute;
-  top: 28px;
-  right: 14px;
-  bottom: 28px;
+  top: calc(28 * var(--u));
+  right: calc(14 * var(--u));
+  bottom: calc(28 * var(--u));
   left: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
 
   /* 스크롤 막대를 띄운 만큼 빼서 격자는 폴더 가운데에 */
   --pad: clamp(24px, 4.5%, 64px);
-  padding: max(4px, calc(var(--pad) - 28px)) max(8px, calc(var(--pad) - 18px)) 12px var(--pad);
+  padding: max(calc(4 * var(--u)), calc(var(--pad) - calc(28 * var(--u)))) max(calc(8 * var(--u)), calc(var(--pad) - calc(18 * var(--u)))) calc(12 * var(--u)) var(--pad);
 }
 
 .folder-scroll::-webkit-scrollbar {
-  width: 4px;
+  width: calc(4 * var(--u));
 }
 
 .folder-scroll::-webkit-scrollbar-track {
-  margin: 6px 0;
+  margin: calc(6 * var(--u)) 0;
   background: transparent;
 }
 
 .folder-scroll::-webkit-scrollbar-thumb {
-  min-height: 90px;
-  border-radius: 2px;
+  min-height: calc(90 * var(--u));
+  border-radius: calc(2 * var(--u));
   background: #c4c4c4;
 }
 
@@ -606,7 +606,7 @@
 .card-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: clamp(6px, 0.8%, 12px);
+  column-gap: clamp(calc(6 * var(--u)), 0.8%, calc(12 * var(--u)));
 }
 
 .card {
@@ -637,10 +637,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 16px 8px 30px;
+  gap: calc(2 * var(--u));
+  padding: calc(16 * var(--u)) calc(8 * var(--u)) calc(30 * var(--u));
 
-  font-size: 12px;
+  font-size: calc(12 * var(--u));
   line-height: 1.35;
   text-align: center;
   overflow-wrap: anywhere;
@@ -651,26 +651,26 @@
 .card-human figcaption {
   align-items: flex-start;
   gap: 0;
-  padding: 14px 0 30px;
+  padding: calc(14 * var(--u)) 0 calc(30 * var(--u));
   text-align: left;
 }
 
 .caption-title {
-  font-size: 18px;
+  font-size: calc(18 * var(--u));
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
 
 .caption-by {
-  margin-top: 6px;
-  font-size: 13px;
+  margin-top: calc(6 * var(--u));
+  font-size: calc(13 * var(--u));
   line-height: 1.3;
 }
 
 .caption-meta {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: calc(8 * var(--u));
+  font-size: calc(13 * var(--u));
   line-height: 1.3;
 }
 
@@ -679,7 +679,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: calc(10 * var(--u));
   width: 100%;
 }
 
@@ -690,25 +690,25 @@
 .card-human .like-button {
   flex: none;
   margin: 0;
-  padding: 4px 0 4px 6px;
+  padding: calc(4 * var(--u)) 0 calc(4 * var(--u)) calc(6 * var(--u));
 }
 
 /* 확대 화면에서도 같은 구성 (가운데 정렬) */
 .viewer-caption.is-human span:first-child {
-  font-size: 20px;
+  font-size: calc(20 * var(--u));
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .viewer-caption.is-human .caption-by,
 .viewer-caption.is-human .caption-meta {
-  font-size: 13px;
+  font-size: calc(13 * var(--u));
 }
 
 /* 방금 저장한 내 정원 */
 .card.is-mine .card-image {
-  outline: 2px solid #86bdff;
-  outline-offset: 3px;
+  outline: calc(2 * var(--u)) solid #86bdff;
+  outline-offset: calc(3 * var(--u));
 }
 
 .gallery-empty {
@@ -719,7 +719,7 @@
   display: grid;
   place-items: center;
 
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   letter-spacing: 0.08em;
   color: #8a8a8a;
   pointer-events: none;
@@ -742,11 +742,11 @@
 
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: calc(16 * var(--u));
 
   background: rgba(244, 244, 244, 0.55);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(calc(6 * var(--u)));
+  backdrop-filter: blur(calc(6 * var(--u)));
 }
 
 .save-dialog[hidden] {
@@ -756,19 +756,19 @@
 .save-dialog-box {
   position: relative;
   max-width: 100%;
-  padding: 36px 40px 28px;
+  padding: calc(36 * var(--u)) calc(40 * var(--u)) calc(28 * var(--u));
 
-  border-radius: 22px;
+  border-radius: calc(22 * var(--u));
   background: #ffffff;
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 30px 60px -30px rgba(0, 0, 0, 0.3);
+    0 calc(30 * var(--u)) calc(60 * var(--u)) calc(-30 * var(--u)) rgba(0, 0, 0, 0.3);
   text-align: center;
 }
 
 .save-dialog-title {
-  margin: 0 0 24px;
-  font-size: 20px;
+  margin: 0 0 calc(24 * var(--u));
+  font-size: calc(20 * var(--u));
   letter-spacing: -0.01em;
 }
 
@@ -776,18 +776,18 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  gap: calc(10 * var(--u));
 }
 
 .dialog-button {
-  padding: 9px 14px;
+  padding: calc(9 * var(--u)) calc(14 * var(--u));
 
   border: 0;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--u));
   background: #ececec;
   color: var(--ink);
   font-family: inherit;
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   letter-spacing: 0.04em;
   cursor: pointer;
 
@@ -801,13 +801,13 @@
 
 .dialog-close {
   position: absolute;
-  top: 10px;
-  right: 14px;
+  top: calc(10 * var(--u));
+  right: calc(14 * var(--u));
 
   border: 0;
   background: none;
   color: #8a8a8a;
-  font-size: 20px;
+  font-size: calc(20 * var(--u));
   line-height: 1;
   cursor: pointer;
 }
@@ -821,21 +821,21 @@
 .like-button {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 6px;
+  gap: calc(5 * var(--u));
+  padding: calc(4 * var(--u)) calc(6 * var(--u));
 
   border: 0;
   background: none;
   color: var(--ink);
   font-family: inherit;
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
 .like-button svg {
-  width: 17px;
-  height: 17px;
+  width: calc(17 * var(--u));
+  height: calc(17 * var(--u));
   overflow: visible;
 
   fill: transparent;
@@ -866,7 +866,7 @@
 }
 
 .card .like-button {
-  margin-top: 6px;
+  margin-top: calc(6 * var(--u));
 }
 
 /* 카드는 눌러서 크게 보기 */
@@ -888,12 +888,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(8px, 3vw, 40px);
-  padding: 16px;
+  gap: clamp(calc(8 * var(--u)), 3vw, calc(40 * var(--u)));
+  padding: calc(16 * var(--u));
 
   background: rgba(10, 10, 10, 0.78);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(calc(4 * var(--u)));
+  backdrop-filter: blur(calc(4 * var(--u)));
   cursor: zoom-out;
 }
 
@@ -910,11 +910,11 @@
 }
 
 .viewer-frame {
-  width: min(70vh, 76vw, 820px);
+  width: min(70vh, 76vw, calc(820 * var(--u)));
   aspect-ratio: 1;
   overflow: hidden;
   background: #ffffff;
-  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 calc(40 * var(--u)) calc(80 * var(--u)) calc(-40 * var(--u)) rgba(0, 0, 0, 0.6);
   transform-origin: 0 0;
 }
 
@@ -930,12 +930,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: calc(3 * var(--u));
   min-height: 3.2em;
-  padding-top: 18px;
+  padding-top: calc(18 * var(--u));
 
   color: #ffffff;
-  font-size: 12px;
+  font-size: calc(12 * var(--u));
   line-height: 1.35;
   text-align: center;
   overflow-wrap: anywhere;
@@ -943,7 +943,7 @@
 }
 
 .viewer-caption span:first-child {
-  font-size: 15px;
+  font-size: calc(15 * var(--u));
   letter-spacing: 0.03em;
 }
 
@@ -952,7 +952,7 @@
 }
 
 .viewer-like-slot .like-button {
-  margin-top: 8px;
+  margin-top: calc(8 * var(--u));
   color: #ffffff;
 }
 
@@ -960,8 +960,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 56px;
+  width: calc(40 * var(--u));
+  height: calc(56 * var(--u));
   padding: 0;
 
   border: 0;
@@ -983,8 +983,8 @@
 }
 
 .viewer-nav svg {
-  width: 11px;
-  height: 20px;
+  width: calc(11 * var(--u));
+  height: calc(20 * var(--u));
   fill: none;
   stroke: currentColor;
   stroke-width: 1.3;
@@ -995,7 +995,7 @@
 @media (max-width: 620px) {
   .viewer {
     gap: 0;
-    padding: 8px;
+    padding: calc(8 * var(--u));
   }
 
   .viewer-frame {
@@ -1003,7 +1003,7 @@
   }
 
   .viewer-nav {
-    width: 30px;
+    width: calc(30 * var(--u));
   }
 }
 
@@ -1022,7 +1022,7 @@
 
 @media (max-width: 900px) {
   .folders {
-    width: calc(100% - 40px);
+    width: calc(100% - calc(40 * var(--u)));
   }
 
   .card-grid {
@@ -1030,7 +1030,7 @@
   }
 
   .build-view {
-    gap: clamp(18px, 3.5%, 40px);
+    gap: clamp(calc(18 * var(--u)), 3.5%, calc(40 * var(--u)));
   }
 
   .result-canvas {

@@ -12,6 +12,11 @@
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* 화면 크기 단위: 창이 1280×780 이상이면 1px, 작아지면 비율대로 함께 줄어듦 (최소 0.62px)
+     → 글자 · 간격 · 버튼은 모두 calc(N * var(--u)) 로 써서 창과 함께 자연스럽게 줄어듦
+     builder.js 의 viewScale() 과 같은 값 */
+  --u: clamp(0.62px, min(100vw / 1280, 100vh / 780), 1px);
+
   /* 유리 위의 미세한 그레인 (SVG 노이즈) */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 0 0.07'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -55,7 +60,7 @@ body {
 .intro-page {
   width: 100%;
   height: 100vh;
-  padding: clamp(14px, 2.4vw, 26px);
+  padding: clamp(calc(14 * var(--u)), 2.4vw, calc(26 * var(--u)));
 
   display: flex;
   flex-direction: column;
@@ -89,7 +94,7 @@ body {
   min-height: 0;
   width: 100%;
 
-  border-radius: clamp(20px, 2.8vw, 30px);
+  border-radius: clamp(calc(20 * var(--u)), 2.8vw, calc(30 * var(--u)));
   background: #f4f4f4;
 }
 
@@ -135,10 +140,10 @@ body {
 
 .mosaic-window {
   position: absolute;
-  left: clamp(14px, 2vw, 28px);
-  right: clamp(14px, 2vw, 28px);
-  top: clamp(24px, 4vw, 44px);
-  bottom: clamp(48px, 6.5vh, 64px);
+  left: clamp(calc(14 * var(--u)), 2vw, calc(28 * var(--u)));
+  right: clamp(calc(14 * var(--u)), 2vw, calc(28 * var(--u)));
+  top: clamp(calc(24 * var(--u)), 4vw, calc(44 * var(--u)));
+  bottom: clamp(calc(48 * var(--u)), 6.5vh, calc(64 * var(--u)));
   z-index: 1;
 }
 
@@ -150,7 +155,7 @@ body {
   position: absolute;
   inset: 0;
 
-  transform: translate3d(calc(var(--par-x, 0) * -8px), calc(var(--par-y, 0) * -6px), 0);
+  transform: translate3d(calc(var(--par-x, 0) * calc(-8 * var(--u))), calc(var(--par-y, 0) * calc(-6 * var(--u))), 0);
 }
 
 .garden-grid {
@@ -208,7 +213,7 @@ body {
   background: rgba(0, 0, 0, 0.3);
   -webkit-mask: var(--squircle) center / 100% 100% no-repeat;
   mask: var(--squircle) center / 100% 100% no-repeat;
-  filter: blur(7px);
+  filter: blur(calc(7 * var(--u)));
   opacity: 0;
   transform: translateY(0) scale(1);
   transition:
@@ -220,7 +225,7 @@ body {
 
 .garden-tile.is-active::before {
   opacity: 1;
-  transform: translateY(6px) scale(1.45);
+  transform: translateY(calc(6 * var(--u))) scale(1.45);
   transition-duration: 300ms;
 }
 
@@ -286,7 +291,7 @@ body {
       rgba(255, 255, 255, 0.3) 0%,
       rgba(242, 242, 242, 0.1) 55%,
       rgba(255, 255, 255, 0.2) 100%);
-  background-size: 180px 180px, 100% 100%;
+  background-size: calc(180 * var(--u)) calc(180 * var(--u)), 100% 100%;
 
   -webkit-backdrop-filter: blur(var(--frost-blur, 9px)) saturate(0.78) brightness(1.06);
   backdrop-filter: blur(var(--frost-blur, 9px)) saturate(0.78) brightness(1.06);
@@ -331,7 +336,7 @@ body {
   background-size: 100% 100%, 150% 150%;
   background-position:
     0 0,
-    calc(50% + var(--par-x, 0) * 60px) calc(50% + var(--par-y, 0) * 40px);
+    calc(50% + var(--par-x, 0) * calc(60 * var(--u))) calc(50% + var(--par-y, 0) * calc(40 * var(--u)));
 
   -webkit-mask-image: var(--hole-mask);
   mask-image: var(--hole-mask);
@@ -344,8 +349,8 @@ body {
     inset 1px 0 0 rgba(255, 255, 255, 0.5),
     inset 0 -1px 0 rgba(0, 0, 0, 0.06),
     inset -1px 0 0 rgba(0, 0, 0, 0.03),
-    inset 0 26px 38px -30px rgba(255, 255, 255, 0.95),
-    inset 0 -30px 42px -34px rgba(0, 0, 0, 0.16),
+    inset 0 calc(26 * var(--u)) calc(38 * var(--u)) calc(-30 * var(--u)) rgba(255, 255, 255, 0.95),
+    inset 0 calc(-30 * var(--u)) calc(42 * var(--u)) calc(-34 * var(--u)) rgba(0, 0, 0, 0.16),
     inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
@@ -363,10 +368,10 @@ body {
 
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.32),
-    inset 0 2px 2px rgba(255, 255, 255, 0.55),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.1),
-    inset 0 0 14px rgba(255, 255, 255, 0.16),
-    0 8px 20px -10px rgba(0, 0, 0, 0.2);
+    inset 0 calc(2 * var(--u)) calc(2 * var(--u)) rgba(255, 255, 255, 0.55),
+    inset 0 calc(-3 * var(--u)) calc(6 * var(--u)) rgba(0, 0, 0, 0.1),
+    inset 0 0 calc(14 * var(--u)) rgba(255, 255, 255, 0.16),
+    0 calc(8 * var(--u)) calc(20 * var(--u)) calc(-10 * var(--u)) rgba(0, 0, 0, 0.2);
 }
 
 /* 구멍이 닫혀 있을 때는 고리도 숨김 */
@@ -381,9 +386,9 @@ body {
   inset: 0;
   border-radius: inherit;
   box-shadow:
-    inset 2px 0 3px -1px rgba(255, 70, 130, 0.18),
-    inset -2px 0 3px -1px rgba(60, 150, 255, 0.18),
-    inset 0 2px 3px -1px rgba(255, 220, 90, 0.1);
+    inset calc(2 * var(--u)) 0 calc(3 * var(--u)) -1px rgba(255, 70, 130, 0.18),
+    inset calc(-2 * var(--u)) 0 calc(3 * var(--u)) -1px rgba(60, 150, 255, 0.18),
+    inset 0 calc(2 * var(--u)) calc(3 * var(--u)) -1px rgba(255, 220, 90, 0.1);
 }
 
 /* 떨어지기 시작하면 유리가 걷힘 */
@@ -436,7 +441,7 @@ body.is-falling .glass {
 
 .start-button:focus-visible {
   outline: 1px solid var(--red);
-  outline-offset: 4px;
+  outline-offset: calc(4 * var(--u));
 }
 
 
@@ -472,8 +477,8 @@ body.is-falling .glass {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(1920px * var(--video-scale, 0.36));
-  height: calc(1080px * var(--video-scale, 0.36));
+  width: calc(calc(1920 * var(--u)) * var(--video-scale, 0.36));
+  height: calc(calc(1080 * var(--u)) * var(--video-scale, 0.36));
   transform: translate(-50%, -50%);
   object-fit: contain;
   /* 영상 배경이 완전한 흰색이라 페이지의 흰 배경과 그대로 이어짐
@@ -488,7 +493,7 @@ body.is-falling .glass {
 
   display: grid;
   place-items: center;
-  padding: 32px 24px;
+  padding: calc(32 * var(--u)) calc(24 * var(--u));
 
   background: #ffffff;
   color: var(--ink);
@@ -539,7 +544,7 @@ body.is-falling .glass {
 
 .gate-copy > * {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(calc(6 * var(--u)));
   animation: gate-in 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -552,7 +557,7 @@ body.is-falling .glass {
 
 .gate-title {
   /* 본문 줄 간격의 위쪽 여백만큼 더해서, 눈에 보이는 간격이 문단 사이와 같도록 */
-  margin: 0 0 calc(var(--space) + var(--k) * 0.0076 * 0.42);
+  margin: 0 0 calc(var(--space) + var(--k) * 0.0086 * 0.42);
   color: var(--red, #b3141e);
   font-size: calc(var(--k) * 0.0196);
   font-weight: 700;
@@ -576,7 +581,7 @@ body.is-falling .glass {
   gap: 0;
   margin: 0 0 var(--space);
   color: var(--ink);
-  font-size: calc(var(--k) * 0.0076);
+  font-size: calc(var(--k) * 0.0086);
   line-height: 1.85;
   white-space: nowrap;
 }
@@ -639,7 +644,7 @@ body.is-falling .glass {
   padding: 0 1.25em;
   height: 100%;
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(999 * var(--u));
   background: transparent;
   color: #ffffff;
   font-family: inherit;
@@ -677,10 +682,10 @@ body.is-falling .glass {
   bottom: calc(var(--k) * -0.0045);
   z-index: -2;
 
-  border-radius: 999px;
+  border-radius: calc(999 * var(--u));
   background: linear-gradient(90deg, #ffd36b, #ff8bd1, #b58cff, #7fd3ff, #9cf0b8);
   filter: blur(calc(var(--k) * 0.0055));
-  opacity: 0.9;
+  opacity: 0.5; /* 흑백 + 빨강 화면에 맞게 은은하게 */
   transition: top 320ms ease, bottom 320ms ease, left 320ms ease, right 320ms ease, opacity 320ms ease, filter 320ms ease;
 }
 
@@ -709,7 +714,7 @@ body.is-falling .glass {
   content: "";
   position: absolute;
   inset: calc(var(--k) * 0.018);
-  border-radius: 999px;
+  border-radius: calc(999 * var(--u));
   background: conic-gradient(from 180deg, #9cf0b8, #7fd3ff, #b58cff, #ff8bd1, #ffd36b, #ff8bd1, #b58cff, #7fd3ff, #9cf0b8);
 }
 
@@ -720,12 +725,12 @@ body.is-falling .glass {
 
 /* 빈 틈은 JS가 위 가운데 기준으로 좁힘 (사파리 · 크롬 모두 같은 속도로) */
 .gate-enter:hover .gate-halo {
-  opacity: 0.85;
+  opacity: 0.4;
 }
 
 /* 다 감싼 뒤에는 전체가 은은하게 더 밝아짐 */
 .gate-enter:hover::after {
-  opacity: 1;
+  opacity: 0.6;
   filter: blur(calc(var(--k) * 0.0065));
   transition-delay: 450ms;
 }
@@ -742,45 +747,45 @@ body.is-falling .glass {
 
 
 @keyframes gate-btn-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 6px)); }
+  from { opacity: 0; transform: translate(-50%, calc(-50% + calc(6 * var(--u)))); }
   to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 /* 오른쪽 아래: [ SKIP ] / 왼쪽 아래: [ SOUND ON ] */
 .opening-sound {
   position: absolute;
-  left: 34px;
-  bottom: 28px;
+  left: calc(34 * var(--u));
+  bottom: calc(28 * var(--u));
   z-index: 1;
 }
 
 .opening-controls {
   position: absolute;
-  right: 34px;
-  bottom: 28px;
+  right: calc(34 * var(--u));
+  bottom: calc(28 * var(--u));
   z-index: 3; /* 입장 화면 위에서도 SKIP 가능 */
 
   display: flex;
-  gap: 8px;
+  gap: calc(8 * var(--u));
 }
 
 /* SOUND · SKIP: 같은 크기 */
 .opening-sound,
 .opening-skip {
   box-sizing: border-box;
-  height: 28px;
-  padding: 0 12px;
+  height: calc(28 * var(--u));
+  padding: 0 calc(12 * var(--u));
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(999 * var(--u));
   background: rgba(255, 255, 255, 0.78);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(calc(6 * var(--u)));
+  backdrop-filter: blur(calc(6 * var(--u)));
 
   color: var(--ink);
   font-family: "Inter Tight", Arial, Helvetica, sans-serif;
-  font-size: 11px;
+  font-size: calc(11 * var(--u));
   font-weight: 400;
-  line-height: 28px;
+  line-height: calc(28 * var(--u));
   letter-spacing: 0.02em;
   cursor: pointer;
 }
@@ -828,16 +833,16 @@ body.is-falling .glass {
   top: 50%;
   transform: translate(-50%, -50%);
 
-  padding: 10px 16px;
+  padding: calc(10 * var(--u)) calc(16 * var(--u));
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(999 * var(--u));
   background: rgba(255, 255, 255, 0.85);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(calc(6 * var(--u)));
+  backdrop-filter: blur(calc(6 * var(--u)));
 
   color: var(--ink);
   font-family: inherit;
-  font-size: 13px;
+  font-size: calc(13 * var(--u));
   cursor: pointer;
 }
 
@@ -994,7 +999,7 @@ body.is-falling .abyss {
 
 /* =========================================
    TRANSITION ZONE
-   선 대신, 위아래 경계 없이 번지는 아주 옅은 안개 띠 (높이 약 120px)
+   선 대신, 위아래 경계 없이 번지는 아주 옅은 안개 띠 (높이 약 calc(120 * var(--u)))
    AI 이미지가 이 안을 지나며 흐려지고 → fragment로 바뀌어 다시 선명해짐
    변환이 일어나는 높이(--line-top)는 그대로
 ========================================= */
@@ -1034,14 +1039,14 @@ body.is-falling .abyss {
 
 /* 가운데의 아주 약한 빛 띠 (선이 아니라 넓게 번진 밝음) */
 .portal-band {
-  top: -14px;
-  height: 28px;
+  top: calc(-14 * var(--u));
+  height: calc(28 * var(--u));
 
   background: radial-gradient(ellipse 45% 50% at 50% 50%,
     rgba(255, 255, 255, 0.7) 0%,
     rgba(236, 244, 255, 0.35) 50%,
     rgba(236, 244, 255, 0) 100%);
-  filter: blur(6px);
+  filter: blur(calc(6 * var(--u)));
 
   opacity: calc(0.2 + var(--energy) * 0.45);
   transition: opacity 600ms ease-out;
@@ -1055,29 +1060,29 @@ body.is-falling .abyss {
 
 /* 넓게 퍼지는 흰 빛 */
 .portal-bloom {
-  top: -90px;
-  height: 180px;
+  top: calc(-90 * var(--u));
+  height: calc(180 * var(--u));
 
   background: radial-gradient(ellipse 55% 50% at 50% 50%,
     rgba(255, 255, 255, 0.9) 0%,
     rgba(255, 255, 255, 0.45) 40%,
     rgba(255, 255, 255, 0) 75%);
-  filter: blur(14px);
+  filter: blur(calc(14 * var(--u)));
 
   opacity: calc(var(--glow) * 0.85);
 }
 
 /* 가운데의 밝은 빛 띠 (선이 아니라 두껍게 번진 빛) */
 .portal-emission {
-  top: -30px;
-  height: 60px;
+  top: calc(-30 * var(--u));
+  height: calc(60 * var(--u));
 
   background: radial-gradient(ellipse 48% 50% at 50% 50%,
     #ffffff 0%,
     rgba(255, 255, 255, 0.85) 30%,
     rgba(255, 255, 255, 0.4) 62%,
     rgba(255, 255, 255, 0) 100%);
-  filter: blur(9px);
+  filter: blur(calc(9 * var(--u)));
 
   opacity: var(--glow);
 }
@@ -1106,8 +1111,8 @@ body.is-falling .abyss {
   overflow: hidden;
   pointer-events: none;
 
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.3) 16px, #000 52px);
-  mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.3) 16px, #000 52px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.3) calc(16 * var(--u)), #000 calc(52 * var(--u)));
+  mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.3) calc(16 * var(--u)), #000 calc(52 * var(--u)));
 }
 
 .fragment {
@@ -1157,7 +1162,7 @@ body.is-falling .abyss {
 /* 좁은 화면: 글자가 왼쪽 위 정보 아래로 내려감 */
 @media (max-width: 700px) {
   .mosaic-window {
-    top: 120px;
+    top: calc(120 * var(--u));
   }
 }
 

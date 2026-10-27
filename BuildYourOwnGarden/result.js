@@ -405,7 +405,7 @@
     for (let i = 0; i < RING; i++) {
       const span = document.createElement("span");
       const angle = (i / RING) * 360;
-      span.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-19px) rotate(${-angle}deg)`;
+      span.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(calc(-19 * var(--u))) rotate(${-angle}deg)`;
       span.textContent = Math.random() < 0.5 ? "0" : "1";
       ring.appendChild(span);
       chars.push(span);

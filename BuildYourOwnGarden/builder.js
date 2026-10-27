@@ -209,32 +209,39 @@
      [라이브러리] [미리보기·레이어 | 캔버스 | 툴바·숫자]
   ========================================= */
 
+  // 화면 크기 단위: 창이 1280×780 이상이면 1, 작아지면 비율대로 (최소 0.62) — style.css 의 --u
+  function viewScale() {
+    return clamp(Math.min(window.innerWidth / 1280, window.innerHeight / 780), 0.62, 1);
+  }
+
   function computeLayout() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const margin = clamp(vw * 0.012, 10, 22);
+    // 화면 크기 단위 (style.css 의 --u 와 같음): 작은 창에서는 최소 크기들도 함께 줄어듦
+    const u = viewScale();
+    const margin = clamp(vw * 0.012, 10 * u, 22 * u);
     // 창이 작아지면 라이브러리 · 오른쪽 칸 · 툴바도 함께 줄어듦
-    const libraryWidth = clamp(vw * 0.19, 180, 380);
+    const libraryWidth = clamp(vw * 0.19, 180 * u, 380 * u);
     // 오른쪽 칸은 가장 긴 줄("200 AI FRAGMENTS")이 들어갈 만큼
-    const infoSize = clamp(vw * 0.0115, 11, 16);
-    const rightWidth = Math.ceil(infoSize * 9.8 + 12);
+    const infoSize = clamp(vw * 0.0115, 11 * u, 16 * u);
+    const rightWidth = Math.ceil(infoSize * 9.8 + 12 * u);
 
-    const panelLeft = margin + libraryWidth + 14;
+    const panelLeft = margin + libraryWidth + 14 * u;
     const panel = { left: panelLeft, top: margin, width: vw - panelLeft - margin, height: vh - margin * 2 };
 
     // 캔버스 크기: 높이 기준, 폭이 모자라면 줄임
     // [툴바 · 레이어 | 캔버스 | 숫자 · FINISH]
-    const pad = clamp(Math.min(panel.height, panel.width) * 0.06, 14, 70);
-    const gap = clamp(vw * 0.011, 10, GAP);
+    const pad = clamp(Math.min(panel.height, panel.width) * 0.06, 14 * u, 70 * u);
+    const gap = clamp(vw * 0.011, 10 * u, GAP * u);
     const leftRatio = 0.25;
     const byHeight = panel.height - pad * 2;
-    const minLeft = 128;
+    const minLeft = 128 * u;
     const room = panel.width - pad * 2 - gap * 2 - rightWidth;
     // 왼쪽 칸(툴바 · 레이어)은 최소 폭이 있으므로, 좁을 때는 그만큼 빼고 캔버스 크기를 정함
     let size = Math.min(byHeight, room / (1 + leftRatio));
     if (size * leftRatio < minLeft) size = Math.min(byHeight, room - minLeft);
-    size = Math.max(200, size);
-    const leftWidth = clamp(size * leftRatio, minLeft, 220);
+    size = Math.max(200 * u, size);
+    const leftWidth = clamp(size * leftRatio, minLeft, 220 * u);
 
     const groupWidth = leftWidth + gap + size + gap + rightWidth;
     const groupLeft = panelLeft + Math.max(pad, (panel.width - groupWidth) / 2);
@@ -245,13 +252,13 @@
     const right = canvasBox.left + size + gap;
 
     // 툴바는 캔버스 높이에 맞춰 버튼 크기를 줄이고, 레이어는 툴바와 겹치지 않게 아래쪽에
-    const toolSize = clamp(Math.floor(size / 13), 26, 38);
+    const toolSize = clamp(Math.floor(size / 13), Math.round(26 * u), Math.round(38 * u));
     const toolbarHeight = toolSize * TOOL_COUNT;
-    const layersHeight = Math.max(56, Math.min(size * 0.45, size - toolbarHeight - 10));
+    const layersHeight = Math.max(56 * u, Math.min(size * 0.45, size - toolbarHeight - 10 * u));
 
     builder.style.setProperty("--tool-size", `${toolSize}px`);
     builder.style.setProperty("--info-size", `${infoSize.toFixed(1)}px`);
-    library.classList.toggle("is-narrow", libraryWidth < 230);
+    library.classList.toggle("is-narrow", libraryWidth < 230 * u);
 
     rects = {
       library: { left: margin, top: margin, width: libraryWidth, height: vh - margin * 2 },
@@ -262,7 +269,7 @@
       // 아주 작은 창에서도 툴바를 가리지 않음 (필요하면 캔버스 아래로 조금 내려감)
       layers: {
         left: leftEdge - leftWidth,
-        top: Math.max(top + size - layersHeight, top + toolbarHeight + 10),
+        top: Math.max(top + size - layersHeight, top + toolbarHeight + 10 * u),
         width: leftWidth,
         height: layersHeight
       },
