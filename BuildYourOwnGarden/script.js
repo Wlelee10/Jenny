@@ -774,15 +774,15 @@ function wakeGate() {
 }
 
 const gateLayer = document.querySelector("#openingGate");
-// 마우스 궤적 0 · 1 이 안 나타나는 곳: 시작 버튼(준비 중엔 로딩 원) + 둘레의 글로우 빛
+// 마우스 궤적 0 · 1 이 안 나타나는 곳: 시작 버튼(준비 중엔 로딩 원) 바로 위
 function trailQuietZone() {
   const button = document.querySelector("#openingEnter");
   const target = button && !button.hidden ? button : document.querySelector("#openingLoader");
   if (!target) return null;
   const rect = target.getBoundingClientRect();
   if (!rect.width) return null;
-  const glow = 0.022 * gateScene.k; // .gate-halo 가 버튼 밖으로 번지는 만큼 (style.css)
-  return { l: rect.left - glow, r: rect.right + glow, t: rect.top - glow, b: rect.bottom + glow };
+  const pad = 0.003 * gateScene.k; // 버튼 바로 위만 비움 — 둘레(빛 위)에는 0 · 1 이 생김
+  return { l: rect.left - pad, r: rect.right + pad, t: rect.top - pad, b: rect.bottom + pad };
 }
 
 function inZone(zone, x, y, pad = 0) {
@@ -848,6 +848,18 @@ function heatLetters(x, y) {
   });
 }
 
+// 본문 글자가 빨개지며 커지는 곳인지 (여기서는 마우스 궤적 0 · 1 을 만들지 않음)
+function nearText(x, y) {
+  const reach = LETTER_REACH * (gateScene.k || window.innerWidth);
+  const range = document.createRange();
+  for (const line of document.querySelectorAll(".gate-text > span")) {
+    range.selectNodeContents(line);
+    const r = range.getBoundingClientRect();
+    if (x > r.left - reach && x < r.right + reach && y > r.top - reach && y < r.bottom + reach) return true;
+  }
+  return false;
+}
+
 // 이 위치가 어느 손(점) 위인지: 0 왼손, 1 오른손, -1 손 밖
 function handAt(x, y) {
   const scene = gateScene;
@@ -872,9 +884,10 @@ gateLayer?.addEventListener("pointermove", (event) => {
   gateLayer.classList.toggle("is-over-hand", overHand);
   heatLetters(gateScene.exitAt ? null : x, y);
   // 누른 채로 움직이면 쌓이는 곳도 따라감 (손 · 버튼 위로 가면 멈춤)
-  if (gateScene.press) gateScene.press = overHand || onButton ? null : { x, y };
+  const overText = !overHand && !onButton && nearText(x, y);
+  if (gateScene.press) gateScene.press = overHand || onButton || overText ? null : { x, y };
   // 손이 없는 곳: 지나간 길을 따라 일정 간격으로 0 · 1 을 남김
-  if (overHand || onButton || !gateScene.ready || gateScene.exitAt) {
+  if (overHand || onButton || overText || !gateScene.ready || gateScene.exitAt) {
     gateScene.trailFrom = null;
   } else {
     const k = gateScene.k;
@@ -925,7 +938,7 @@ gateLayer?.addEventListener("pointerdown", (event) => {
   const hand = handAt(event.clientX, event.clientY);
   if (hand < 0) {
     // 빈 곳: 둘레에 이미 있는 0 · 1 은 조금 더 오래 남고, 누르는 동안 새로 쌓임
-    if (!gateScene.ready || gateScene.exitAt) return;
+    if (!gateScene.ready || gateScene.exitAt || nearText(event.clientX, event.clientY)) return;
     const x = event.clientX;
     const y = event.clientY;
     const now = performance.now();
