@@ -291,9 +291,10 @@ function drawGateArt() {
 /* ---------- 배경: 아주 옅은 0 · 1 ----------
    흰 바탕을 촘촘한 0 · 1 로 채움. 손 · 글 · 버튼(빛 포함) 둘레는 비워서 방해하지 않음.
    세로 줄마다 위 또는 아래로 천천히 흐름 (데이터가 흘러가는 느낌) */
-const BACKDROP_GAP = 0.0053;    // 글자 사이 간격 (손 크기 k의 몇 배)
+const BACKDROP_GAP = 0.0053;    // 0 · 1 세로 간격 (손 크기 k의 몇 배)
+const BACKDROP_GAP_X = 0.0046;  // 0 · 1 가로 간격 (세로 줄 사이)
 const BACKDROP_SIZE = 0.0042;   // 글자 크기
-const BACKDROP_ALPHA = [0.2, 0.42]; // 가장 옅게 ~ 가장 진하게
+const BACKDROP_ALPHA = [0.3, 0.65]; // 가장 옅게 ~ 가장 진하게
 const BACKDROP_HAND_GAP = 0.009; // 손 점에서 이만큼은 비움 (손이 움직이면 같이 따라감)
 const BACKDROP_CENTER = 0.25; // 글 가운데 진하기 (네 끝 1 기준)
 const BACKDROP_SPEED = [0.012, 0.045]; // 줄마다 흐르는 속도 (1초에 손 크기 k의 몇 배) — 느리게 ~ 빠르게
@@ -442,11 +443,13 @@ function buildGateBackdrop(width, height, k, ratio, dots, area) {
   const mask = makeMask(); // 매 프레임 합쳐서 쓰는 지도
 
   // 2. 세로 줄마다 0 · 1 띠 (위아래로 이어 붙여도 티 안 나게 반복)
-  const cols = Math.ceil(width / gap);
+  // 가로 간격(줄 사이)은 세로 간격보다 조금 좁게
+  const colGap = Math.max(1, Math.round(BACKDROP_GAP_X * k * ratio)) / ratio;
+  const cols = Math.ceil(width / colGap);
   const rowsTile = Math.ceil(height / gap) + 8;
   const tileH = rowsTile * gap;
   const atlas = document.createElement("canvas");
-  atlas.width = Math.round(cols * gap * ratio);
+  atlas.width = Math.round(cols * colGap * ratio);
   atlas.height = Math.round(tileH * ratio);
   const actx = atlas.getContext("2d");
   actx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -458,7 +461,7 @@ function buildGateBackdrop(width, height, k, ratio, dots, area) {
   for (let c = 0; c < cols; c++) {
     for (let r = 0; r < rowsTile; r++) {
       actx.globalAlpha = lo + Math.random() * (hi - lo);
-      actx.fillText(Math.random() < 0.5 ? "0" : "1", (c + 0.5) * gap, (r + 0.5) * gap);
+      actx.fillText(Math.random() < 0.5 ? "0" : "1", (c + 0.5) * colGap, (r + 0.5) * gap);
     }
   }
 
@@ -474,12 +477,12 @@ function buildGateBackdrop(width, height, k, ratio, dots, area) {
   const layer = document.createElement("canvas");
   layer.width = Math.round(width * ratio);
   layer.height = Math.round(height * ratio);
-  return { paintCopyMask, atlas, mask, copyMask, handMasks, step, layer, cols, gap, tileH, speeds, offsets, ratio, width, height };
+  return { paintCopyMask, atlas, mask, copyMask, handMasks, step, layer, cols, colGap, tileH, speeds, offsets, ratio, width, height };
 }
 
 // 흐르는 0 · 1 을 그리고, 비울 곳을 지운 뒤 화면에 붙임
 function drawGateBackdrop(context, backdrop, now, alpha, drift, back = { x: 0, y: 0 }) {
-  const { atlas, mask, copyMask, handMasks, step, layer, cols, gap, tileH, speeds, offsets, ratio, width, height } = backdrop;
+  const { atlas, mask, copyMask, handMasks, step, layer, cols, colGap, tileH, speeds, offsets, ratio, width, height } = backdrop;
 
   // 지도 합치기: 글 · 버튼 지도에서 지금 손 자리를 지움
   const mctx = mask.getContext("2d");
@@ -494,7 +497,7 @@ function drawGateBackdrop(context, backdrop, now, alpha, drift, back = { x: 0, y
   lctx.globalCompositeOperation = "source-over";
   lctx.clearRect(0, 0, width, height);
   const seconds = now / 1000;
-  const sw = gap * ratio;
+  const sw = colGap * ratio;
   const sh = atlas.height;
   // 뒷배경 전체가 back 만큼 밀림 (가장자리가 비지 않게 양끝에 한 줄씩 더)
   const bx = Math.round(back.x * ratio) / ratio;
@@ -504,12 +507,12 @@ function drawGateBackdrop(context, backdrop, now, alpha, drift, back = { x: 0, y
     if (y > 0) y -= tileH;
     for (; y < height; y += tileH) {
       const py = Math.round(y * ratio) / ratio;
-      lctx.drawImage(atlas, src * sw, 0, sw, sh, c * gap + bx, py, gap, tileH);
+      lctx.drawImage(atlas, src * sw, 0, sw, sh, c * colGap + bx, py, colGap, tileH);
     }
   }
   lctx.globalCompositeOperation = "destination-in";
   lctx.imageSmoothingEnabled = true;
-  lctx.drawImage(mask, 0, 0, mask.width * (gap / 2), mask.height * (gap / 2));
+  lctx.drawImage(mask, 0, 0, mask.width * step, mask.height * step);
   lctx.globalCompositeOperation = "source-over";
 
   context.globalAlpha = alpha;
