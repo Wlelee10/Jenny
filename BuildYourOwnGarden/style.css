@@ -539,7 +539,8 @@ body.is-falling .glass {
   z-index: 1;
   transform: translate(-50%, -50%);
   text-align: center;
-  font-family: "Inter Tight", Arial, Helvetica, sans-serif;
+  font-family: "Silkscreen", "Inter Tight", Arial, Helvetica, sans-serif; /* 로딩 화면만 픽셀 글씨 */
+  font-variant-ligatures: none; /* fi 가 한 글자로 붙어 "A"처럼 보이지 않게 */
 }
 
 .gate-copy > * {
@@ -557,11 +558,12 @@ body.is-falling .glass {
 
 .gate-title {
   /* 본문 줄 간격의 위쪽 여백만큼 더해서, 눈에 보이는 간격이 문단 사이와 같도록 */
-  margin: 0 0 calc(var(--space) + var(--k) * 0.0086 * 0.42);
+  margin: 0 0 calc(var(--space) + var(--k) * 0.0064 * 0.42);
   color: var(--red, #b3141e);
-  font-size: calc(var(--k) * 0.0196);
+  font-family: "VT323", "Inter Tight", Arial, Helvetica, sans-serif; /* 제목 · 버튼은 VT323, 본문은 Silkscreen */
+  font-size: calc(var(--k) * 0.024);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.1;
 }
 
@@ -581,8 +583,9 @@ body.is-falling .glass {
   gap: 0;
   margin: 0 0 var(--space);
   color: var(--ink);
-  font-size: calc(var(--k) * 0.0086);
-  line-height: 1.85;
+  font-size: calc(var(--k) * 0.0064);
+  line-height: 2.1;
+  letter-spacing: -0.09em; /* Silkscreen 은 글자 사이가 넓어서 좁힘 */
   white-space: nowrap;
 }
 
@@ -647,8 +650,9 @@ body.is-falling .glass {
   border-radius: calc(999 * var(--u));
   background: transparent;
   color: #ffffff;
-  font-family: inherit;
-  font-size: calc(var(--k) * 0.0072);
+  font-family: "VT323", "Inter Tight", Arial, Helvetica, sans-serif;
+  font-variant-ligatures: none;
+  font-size: calc(var(--k) * 0.009);
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -751,12 +755,58 @@ body.is-falling .glass {
   to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
+/* 첫 화면: 살짝 어두운 막 + 가운데 [ SOUND OFF ] (누르면 [ SOUND ON ] 으로 바뀌고 막이 걷힘) */
+.sound-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(12 * var(--u));
+
+  background: rgba(17, 17, 17, 0.42);
+  -webkit-backdrop-filter: blur(calc(2 * var(--u)));
+  backdrop-filter: blur(calc(2 * var(--u)));
+  transition: opacity 700ms ease 250ms;
+}
+
+.sound-gate.is-open {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sound-gate[hidden] {
+  display: none;
+}
+
+.sound-gate-button {
+  padding: calc(8 * var(--u)) calc(10 * var(--u));
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: "VT323", "Inter Tight", Arial, Helvetica, sans-serif;
+  font-size: calc(18 * var(--u));
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 200ms ease;
+}
+
+.sound-gate-button:hover,
+.sound-gate-button:focus-visible,
+.sound-gate-button.is-on {
+  color: #ffffff;
+  outline: none;
+}
+
 /* 오른쪽 아래: [ SKIP ] / 왼쪽 아래: [ SOUND ON ] */
 .opening-sound {
   position: absolute;
   left: calc(34 * var(--u));
   bottom: calc(28 * var(--u));
-  z-index: 1;
+  z-index: 3; /* 입장 화면 위에서도 누를 수 있게 */
 }
 
 .opening-controls {

@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;700&family=Silkscreen:wght@400;700&family=VT323&display=swap" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="builder.css" />
   <link rel="stylesheet" href="result.css" />
@@ -40,6 +40,10 @@
           <button class="gate-enter" id="openingEnter" type="button" hidden><span class="gate-halo" aria-hidden="true"></span>Show your Creativity</button>
         </div>
       </div>
+    </div>
+    <!-- 첫 화면: 살짝 어두운 막 + 가운데 [ SOUND OFF ] → 눌러서 [ SOUND ON ] 이 되면 시작 -->
+    <div class="sound-gate" id="soundGate">
+      <button class="sound-gate-button" id="soundGateButton" type="button">[ SOUND OFF ]</button>
     </div>
     <button class="opening-sound" id="openingSound" type="button" aria-pressed="true" hidden>[ SOUND ON ]</button>
     <div class="opening-controls">

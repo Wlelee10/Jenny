@@ -121,9 +121,14 @@ function watchOpening() {
 // 소리: 처음부터 켜진 상태가 기본. 버튼을 누르면 [ SOUND OFF ](회색) ↔ [ SOUND ON ]
 let soundOffByUser = false;
 
+// 로딩 화면(입장 전)의 배경 전자음: 처음엔 [ SOUND OFF ], 누르면 [ SOUND ON ] 으로 켜짐
+let gateSoundOn = false;
+let gateSoundTouched = false;
+
 function paintSound() {
   if (!openingSound || !openingVideo) return;
-  const off = openingVideo.muted;
+  const gated = opening?.classList.contains("is-gated");
+  const off = gated ? !gateSoundOn : openingVideo.muted;
   openingSound.textContent = off ? "[ SOUND OFF ]" : "[ SOUND ON ]";
   openingSound.classList.toggle("is-off", off);
   openingSound.setAttribute("aria-pressed", String(!off));
@@ -231,7 +236,8 @@ function drawGateArt() {
     const glow = 0.006 * k;
     area = { l: rect.left - glow, r: rect.right + glow, t: rect.top - glow, b: rect.bottom + glow };
   }
-  const FADE = 0.038 * k; // 이 거리만큼 멀어지면 완전히 진해짐 (빛 여유 포함 손 크기의 4.4%)
+  const GATE_DOT_MIN = 0.28; // 글 바로 옆 손 점의 진하기 (가장 흐릴 때)
+  const FADE = 0.03 * k; // 이 거리만큼 멀어지면 완전히 진해짐 (빛 여유 포함 손 크기의 4.4%)
 
   // 왼손: 손끝이 가운데에서 0.092k 왼쪽, 세로 중심은 글보다 살짝 위
   // 오른손: 손끝이 가운데에서 0.066k 오른쪽, 세로 중심은 글보다 0.113k 아래
@@ -243,6 +249,7 @@ function drawGateArt() {
   const rightDX = cx + 0.066 * k - R.l * k;
   const rightDY = cy + 0.113 * k - ((R.t + R.b) / 2) * k;
 
+  const textShapes = copyShapes(k); // 글줄 · 버튼 실제 모양 (이 뒤에 들어간 점은 흐리게)
   const dots = new Float32Array((source.length / 3) * STRIDE);
   let n = 0;
   for (let i = 0; i < source.length; i += 3) {
@@ -258,29 +265,276 @@ function drawGateArt() {
     dots[n] = x;
     dots[n + 1] = y;
     dots[n + 2] = r;
-    dots[n + 3] = 0.05 + 0.95 * t * t * (3 - 2 * t);
+    // 글자 · 버튼 바로 뒤에 들어간 점은 거의 안 보이게, 그 밖은 GATE_DOT_MIN 에서 서서히 진하게
+    const behindText = textShapes.some((q) => {
+      const ex = Math.max(q.l - x, 0, x - q.r);
+      const ey = Math.max(q.t - y, 0, y - q.b);
+      return Math.hypot(ex, ey) < q.round + r;
+    });
+    dots[n + 3] = behindText ? 0.06 : GATE_DOT_MIN + (1 - GATE_DOT_MIN) * t * t * (3 - 2 * t);
     dots[n + 10] = right ? 1 : 0;
+    // 뒤집힘 물결이 지나가는 순서 (0 → 1): 왼손은 오른쪽 → 왼쪽, 오른손은 왼쪽 → 오른쪽
+    dots[n + 11] = right ? (fx - R.l) / (R.r - R.l || 1) : (L.r - fx) / (L.r - L.l || 1);
     n += STRIDE;
   }
 
-  Object.assign(gateScene, { ready: true, width, height, k, context, dots, area });
+  const backdrop = buildGateBackdrop(width, height, k, ratio, dots, area);
+  // 깊이: 손끝이 가장 앞(+1), 손목 쪽이 가장 뒤(-1)
+  const depth = new Float32Array(dots.length / STRIDE);
+  for (let i = 0, d = 0; i < dots.length; i += STRIDE, d++) depth[d] = 1 - 2 * dots[i + 11];
+  const shadows = buildHandShadows(width, height, k, ratio, dots);
+  Object.assign(gateScene, { ready: true, width, height, k, context, dots, area, backdrop, depth, shadows });
   gateFrame(performance.now(), true);
   wakeGate();
+}
+
+/* ---------- 배경: 아주 옅은 0 · 1 ----------
+   흰 바탕을 촘촘한 0 · 1 로 채움. 손 · 글 · 버튼(빛 포함) 둘레는 비워서 방해하지 않음.
+   세로 줄마다 위 또는 아래로 천천히 흐름 (데이터가 흘러가는 느낌) */
+const BACKDROP_GAP = 0.0053;    // 글자 사이 간격 (손 크기 k의 몇 배)
+const BACKDROP_SIZE = 0.0042;   // 글자 크기
+const BACKDROP_ALPHA = [0.2, 0.42]; // 가장 옅게 ~ 가장 진하게
+const BACKDROP_HAND_GAP = 0.009; // 손 점에서 이만큼은 비움 (손이 움직이면 같이 따라감)
+const BACKDROP_CENTER = 0.25; // 글 가운데 진하기 (네 끝 1 기준)
+const BACKDROP_SPEED = [0.012, 0.045]; // 줄마다 흐르는 속도 (1초에 손 크기 k의 몇 배) — 느리게 ~ 빠르게
+
+/* ---------- 3D 느낌 ----------
+   마우스 위치로 카메라가 살짝 움직이는 것처럼: 손(가까움)은 많이, 글은 그대로, 뒷배경(멂)은 반대로 조금
+   손 안에서도 손끝(앞)과 손목(뒤)이 다르게 움직임 → 점 구름이 입체로 보임
+   마우스를 빛으로 삼아 손 그림자가 배경 위에 드리워짐 */
+const HAND_PARALLAX = 0.008;   // 손 전체가 움직이는 거리 (손 크기 k의 몇 배)
+const DEPTH_PARALLAX = 0.004;  // 손끝 · 손목이 서로 다르게 움직이는 정도
+const BACK_PARALLAX = 0.005;   // 뒷배경 0 · 1 이 반대로 움직이는 거리
+const SHADOW_BASE = [0.005, 0.012]; // 마우스가 가운데일 때 그림자 위치 (오른쪽 아래)
+const SHADOW_SHIFT = 0.016;    // 마우스(빛)를 따라 그림자가 움직이는 거리
+const SHADOW_ALPHA = 0.055;     // 그림자 진하기
+const CAMERA_EASE = 2.6;       // 카메라가 마우스를 따라가는 빠르기
+
+// 손마다 흐린 그림자 한 장 (한 번만 그려 두고 매 프레임 옮겨 붙임)
+function buildHandShadows(width, height, k, ratio, dots) {
+  const W = Math.round(width * ratio);
+  const H = Math.round(height * ratio);
+  // 모양은 화면 밖에 그리고 그림자만 화면 안으로 (흐림이 모든 브라우저에서 됨)
+  // 화면 밖까지 뻗은 팔의 점이 화면 안에 들어오지 않도록 가장 오른쪽 점보다 더 멀리 보냄
+  let maxX = width;
+  for (let i = 0; i < dots.length; i += STRIDE) maxX = Math.max(maxX, dots[i]);
+  const far = Math.ceil((maxX + 200) * ratio) + W;
+  return [0, 1].map((hand) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.shadowColor = `rgba(17, 17, 17, ${SHADOW_ALPHA})`;
+    ctx.shadowBlur = 0.007 * k * ratio;
+    ctx.shadowOffsetX = far;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    for (let i = 0; i < dots.length; i += STRIDE) {
+      if (dots[i + 10] !== hand || dots[i + 3] < 0.3) continue;
+      const x = dots[i] * ratio - far;
+      const y = dots[i + 1] * ratio;
+      const r = dots[i + 2] * ratio * 1.25;
+      ctx.moveTo(x + r, y);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    return canvas;
+  });
+}
+
+// 0 · 1 을 비울 곳: 제목 · 본문 한 줄 한 줄의 글자 외곽, 버튼(빛 포함) 또는 로딩 원
+function copyShapes(k) {
+  const shapes = [];
+  const textPad = 0.004 * k;
+  const range = document.createRange();
+  document.querySelectorAll(".gate-title, .gate-text > span").forEach((el) => {
+    range.selectNodeContents(el);
+    for (const r of range.getClientRects()) {
+      if (!r.width) continue;
+      shapes.push({ l: r.left - textPad, r: r.right + textPad, t: r.top - textPad, b: r.bottom + textPad, round: 0 });
+    }
+  });
+  const button = document.querySelector("#openingEnter");
+  const target = button && !button.hidden ? button : document.querySelector("#openingLoader");
+  const rect = target?.getBoundingClientRect();
+  if (rect?.width) {
+    const glow = 0.022 * k; // 버튼 빛이 번지는 만큼
+    const half = Math.min(rect.width, rect.height) / 2;
+    // 알약 모양: 가운데 선분까지의 거리 - 반지름
+    shapes.push({
+      l: rect.left + half, r: rect.right - half,
+      t: rect.top + half, b: rect.bottom - half,
+      round: half + glow
+    });
+  }
+  return shapes;
+}
+
+function buildGateBackdrop(width, height, k, ratio, dots, area) {
+  const gap = Math.max(1, Math.round(BACKDROP_GAP * k * ratio)) / ratio; // 픽셀에 딱 맞춰야 선명
+  const size = BACKDROP_SIZE * k;
+
+  // 1. 비울 곳 지도: 작은 캔버스에 그리고 크게 늘려서 가장자리가 부드럽게
+  //    글 · 버튼은 고정, 손은 손마다 따로 만들어 두고 손이 움직이는 대로 따라 옮김
+  const step = gap / 2;
+  const mw = Math.ceil(width / step);
+  const mh = Math.ceil(height / step);
+  const makeMask = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = mw;
+    canvas.height = mh;
+    return canvas;
+  };
+
+  // 그러데이션 중심 = 글 가운데, 네 끝으로 갈수록 진하게
+  const gx = (area.l + area.r) / 2;
+  const gy = (area.t + area.b) / 2;
+  const gw = Math.max(gx, width - gx);
+  const gh = Math.max(gy, height - gy);
+  const copyMask = makeMask();
+  const paintCopyMask = () => {
+    const quiet = copyShapes(k);
+    const quietPad = 0.016 * k; // 글 외곽에서 이만큼 지나면 다 나타남
+    const cctx = copyMask.getContext("2d");
+    const copyPixels = cctx.createImageData(mw, mh);
+    for (let my = 0; my < mh; my++) {
+      for (let mx = 0; mx < mw; mx++) {
+        const x = (mx + 0.5) * step;
+        const y = (my + 0.5) * step;
+        // 가장 가까운 글줄 · 버튼 외곽까지의 거리
+        let d = Infinity;
+        for (const q of quiet) {
+          const dx = Math.max(q.l - x, 0, x - q.r);
+          const dy = Math.max(q.t - y, 0, y - q.b);
+          d = Math.min(d, Math.hypot(dx, dy) - q.round);
+        }
+        const t = Math.max(0, Math.min(1, d / quietPad));
+        // 화면 그러데이션: 글 가운데가 가장 옅고 네 끝으로 갈수록 진해짐
+        const e = Math.min(1, Math.hypot((x - gx) / gw, (y - gy) / gh) / Math.SQRT2);
+        const g = BACKDROP_CENTER + (1 - BACKDROP_CENTER) * e * e * (3 - 2 * e);
+        copyPixels.data[(my * mw + mx) * 4 + 3] = Math.round(t * t * (3 - 2 * t) * g * 255);
+      }
+    }
+    cctx.putImageData(copyPixels, 0, 0);
+  };
+  paintCopyMask();
+  document.fonts?.ready.then(() => { if (gateScene.backdrop?.copyMask === copyMask) paintCopyMask(); }); // 글꼴이 늦게 오면 글 폭이 바뀜
+
+  // 손 점 둘레 (손마다 하나씩)
+  const reach = Math.max(1, Math.round((BACKDROP_HAND_GAP * k) / step));
+  const handMasks = [makeMask(), makeMask()];
+  const handPixels = handMasks.map((m) => m.getContext("2d").createImageData(mw, mh));
+  for (let i = 0; i < dots.length; i += STRIDE) {
+    const data = handPixels[dots[i + 10]].data;
+    const c = Math.floor(dots[i] / step);
+    const r = Math.floor(dots[i + 1] / step);
+    for (let dr = -reach; dr <= reach; dr++) {
+      for (let dc = -reach; dc <= reach; dc++) {
+        const cc = c + dc;
+        const rr = r + dr;
+        if (cc >= 0 && cc < mw && rr >= 0 && rr < mh && dc * dc + dr * dr <= reach * reach) {
+          data[(rr * mw + cc) * 4 + 3] = 255;
+        }
+      }
+    }
+  }
+  handMasks.forEach((m, h) => m.getContext("2d").putImageData(handPixels[h], 0, 0));
+  const mask = makeMask(); // 매 프레임 합쳐서 쓰는 지도
+
+  // 2. 세로 줄마다 0 · 1 띠 (위아래로 이어 붙여도 티 안 나게 반복)
+  const cols = Math.ceil(width / gap);
+  const rowsTile = Math.ceil(height / gap) + 8;
+  const tileH = rowsTile * gap;
+  const atlas = document.createElement("canvas");
+  atlas.width = Math.round(cols * gap * ratio);
+  atlas.height = Math.round(tileH * ratio);
+  const actx = atlas.getContext("2d");
+  actx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  actx.fillStyle = "#111111";
+  actx.textAlign = "center";
+  actx.textBaseline = "middle";
+  actx.font = `400 ${size.toFixed(1)}px "Courier New", Courier, monospace`;
+  const [lo, hi] = BACKDROP_ALPHA;
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rowsTile; r++) {
+      actx.globalAlpha = lo + Math.random() * (hi - lo);
+      actx.fillText(Math.random() < 0.5 ? "0" : "1", (c + 0.5) * gap, (r + 0.5) * gap);
+    }
+  }
+
+  // 줄마다 위 또는 아래로, 속도는 제각각
+  const speeds = new Float32Array(cols);
+  const offsets = new Float32Array(cols);
+  for (let c = 0; c < cols; c++) {
+    const [slow, fast] = BACKDROP_SPEED;
+    speeds[c] = (Math.random() < 0.5 ? -1 : 1) * (slow + Math.random() * (fast - slow)) * k;
+    offsets[c] = Math.random() * tileH;
+  }
+
+  const layer = document.createElement("canvas");
+  layer.width = Math.round(width * ratio);
+  layer.height = Math.round(height * ratio);
+  return { paintCopyMask, atlas, mask, copyMask, handMasks, step, layer, cols, gap, tileH, speeds, offsets, ratio, width, height };
+}
+
+// 흐르는 0 · 1 을 그리고, 비울 곳을 지운 뒤 화면에 붙임
+function drawGateBackdrop(context, backdrop, now, alpha, drift, back = { x: 0, y: 0 }) {
+  const { atlas, mask, copyMask, handMasks, step, layer, cols, gap, tileH, speeds, offsets, ratio, width, height } = backdrop;
+
+  // 지도 합치기: 글 · 버튼 지도에서 지금 손 자리를 지움
+  const mctx = mask.getContext("2d");
+  mctx.globalCompositeOperation = "copy";
+  mctx.drawImage(copyMask, 0, 0);
+  mctx.globalCompositeOperation = "destination-out";
+  handMasks.forEach((hand, h) => mctx.drawImage(hand, drift[h].x / step, drift[h].y / step));
+  mctx.globalCompositeOperation = "source-over";
+
+  const lctx = layer.getContext("2d");
+  lctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  lctx.globalCompositeOperation = "source-over";
+  lctx.clearRect(0, 0, width, height);
+  const seconds = now / 1000;
+  const sw = gap * ratio;
+  const sh = atlas.height;
+  // 뒷배경 전체가 back 만큼 밀림 (가장자리가 비지 않게 양끝에 한 줄씩 더)
+  const bx = Math.round(back.x * ratio) / ratio;
+  for (let c = -1; c <= cols; c++) {
+    const src = ((c % cols) + cols) % cols;
+    let y = (offsets[src] + speeds[src] * seconds + back.y) % tileH;
+    if (y > 0) y -= tileH;
+    for (; y < height; y += tileH) {
+      const py = Math.round(y * ratio) / ratio;
+      lctx.drawImage(atlas, src * sw, 0, sw, sh, c * gap + bx, py, gap, tileH);
+    }
+  }
+  lctx.globalCompositeOperation = "destination-in";
+  lctx.imageSmoothingEnabled = true;
+  lctx.drawImage(mask, 0, 0, mask.width * (gap / 2), mask.height * (gap / 2));
+  lctx.globalCompositeOperation = "source-over";
+
+  context.globalAlpha = alpha;
+  context.drawImage(layer, 0, 0, width, height);
+  context.globalAlpha = 1;
 }
 
 /* ---------- 호버 인터랙션 ----------
    1. 커서 근처 점들이 자석처럼 밀려났다가 탄성 있게 제자리로 돌아옴
    2. 커서 바로 아래 점들은 잠깐 0 또는 1 글자로 바뀌었다가 다시 점으로 (손이 데이터로 만들어졌다는 것) */
 
-const STRIDE = 11; // [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char, hand]
+const STRIDE = 12; // [x, y, r, baseAlpha, ox, oy, vx, vy, bit, char, hand, flipOrder]
 
 /* 호버 전에도: 두 손이 천천히 숨 쉬듯 떠다니고(서로 반대 박자, 살짝 다가갔다 멀어짐),
    여기저기 점이 잠깐씩 0 · 1 로 반짝임 */
 const IDLE_PERIOD = 7;      // 초. 한 번 떠올랐다 내려오는 시간
-const IDLE_FLICKER = 7;     // 1초에 0 · 1 로 반짝이는 점 수
+const FLIP_EVERY = 5;       // 초. 손 하나에 뒤집힘 물결이 지나가는 주기 (두 손 같은 박자)
+const FLIP_SWEEP = 1.6;     // 초. 물결이 손 끝에서 끝까지 지나가는 시간
+const FLIP_DOT = 0.5;       // 초. 점 하나가 한 바퀴 뒤집히는 시간
 const GATE_EXIT_MS = 1500;  // 시작을 누른 뒤: 글이 사라지고 손이 양쪽으로 들어가는 시간 (그다음 영상 시작)
 const RIPPLE_RADIUS = 0.05; // 클릭 물결이 닿는 반경 (손 크기 k의 몇 배) — 클릭한 손 안에서만
 const RIPPLE_SPEED = 0.1;   // 클릭 물결이 퍼지는 속도 (1초에 손 크기 k의 몇 배)
+const RIPPLE_COUNT = 2;     // 한 번 클릭에 퍼지는 물결 수
+const RIPPLE_GAP_MS = 220;  // 다음 물결이 출발하기까지
+const RIPPLE_LIFT = 0.006;  // 고리가 지나갈 때 점이 바깥으로 들리는 거리 (손 크기 k의 몇 배)
 const TRAIL_LIFE_MS = 900;  // 마우스 궤적의 0 · 1 이 사라지기까지
 const LETTER_REACH = 0.018; // 본문 글자가 빨개지는 마우스 둘레 (손 크기 k의 몇 배)
 const PRESS_LIFE = 2.6;     // 빈 곳을 눌렀을 때 그 둘레 0 · 1 은 평소의 몇 배 오래 남는지
@@ -317,39 +571,61 @@ function gateFrame(now, once) {
     drift[0].x -= e * width * 0.75;
     drift[1].x += e * width * 0.75;
   }
+  // 카메라: 마우스 쪽으로 천천히 (마우스가 없으면 가운데로)
+  const cam = scene.cam || (scene.cam = { x: 0, y: 0 });
+  const aimX = pointer && !scene.exitAt ? Math.max(-1, Math.min(1, (pointer.x / width) * 2 - 1)) : 0;
+  const aimY = pointer && !scene.exitAt ? Math.max(-1, Math.min(1, (pointer.y / height) * 2 - 1)) : 0;
+  const follow = 1 - Math.exp(-dt * CAMERA_EASE);
+  cam.x += (aimX - cam.x) * follow;
+  cam.y += (aimY - cam.y) * follow;
+  // 손 전체는 drift 에 더해 둠 → 클릭 판정 · 물결 · 배경 빈 곳도 같이 따라감
+  drift.forEach((d) => {
+    d.x += cam.x * HAND_PARALLAX * k;
+    d.y += cam.y * HAND_PARALLAX * k;
+  });
   scene.drift = drift;
 
   // 클릭 물결: 오래된 것은 지움
   const rippleSpeed = RIPPLE_SPEED * k;
-  const rippleWidth = 0.018 * k;
+  const rippleWidth = 0.012 * k; // 고리 두께
   const ripples = scene.ripples.filter((ripple) => now - ripple.at < RIPPLE_LIFE_MS);
   scene.ripples = ripples;
 
-  // 가끔 아무 점이나 0 · 1 로 반짝 (입장 화면이 보일 때만)
   const gateOpen = gateArt.isConnected && !gateArt.closest("[hidden]");
-  if (!once && gateOpen) {
-    let spawn = IDLE_FLICKER * dt;
-    while (spawn > 0) {
-      if (Math.random() < spawn) {
-        const j = Math.floor(Math.random() * (dots.length / STRIDE)) * STRIDE;
-        if (dots[j + 3] > 0.5 && dots[j + 8] < 0.05) {
-          dots[j + 9] = Math.random() < 0.5 ? 0 : 1;
-          dots[j + 8] = 1;
-        }
-      }
-      spawn -= 1;
-    }
+  const clock = now / 1000;
+  // 뒤집힘 물결이 새로 시작될 때 소리
+  const flipRound = Math.floor(clock / FLIP_EVERY);
+  if (!once && gateOpen && !scene.exitAt && flipRound !== scene.flipRound) {
+    if (scene.flipRound !== undefined) window.gardenSound?.gateFlip(FLIP_SWEEP);
+    scene.flipRound = flipRound;
   }
 
   context.clearRect(0, 0, width, height);
+  if (scene.backdrop) {
+    // 시작을 누르면 손과 함께 사라짐
+    const out = scene.exitAt ? Math.min(1, (now - scene.exitAt) / (GATE_EXIT_MS * 0.6)) : 0;
+    if (out < 1) {
+      const back = { x: -cam.x * BACK_PARALLAX * k, y: -cam.y * BACK_PARALLAX * k };
+      drawGateBackdrop(context, scene.backdrop, now, 1 - out, drift, back);
+    }
+  }
+  // 손 그림자: 마우스(빛)의 반대쪽으로
+  if (scene.shadows) {
+    const sx = (SHADOW_BASE[0] - cam.x * SHADOW_SHIFT) * k;
+    const sy = (SHADOW_BASE[1] - cam.y * SHADOW_SHIFT) * k;
+    scene.shadows.forEach((shadow, h) => {
+      context.drawImage(shadow, drift[h].x + sx, drift[h].y + sy, width, height);
+    });
+  }
   context.textAlign = "center";
   context.textBaseline = "middle";
   let active = false;
 
   for (let i = 0; i < dots.length; i += STRIDE) {
     const sway = drift[dots[i + 10]];
-    const hx = dots[i] + sway.x;
-    const hy = dots[i + 1] + sway.y;
+    const z = scene.depth ? scene.depth[i / STRIDE] : 0;
+    const hx = dots[i] + sway.x + cam.x * z * DEPTH_PARALLAX * k;
+    const hy = dots[i + 1] + sway.y + cam.y * z * DEPTH_PARALLAX * k;
     const r = dots[i + 2];
     if (hx < -push || hx > width + push || hy < -push || hy > height + push) continue;
     const alpha = dots[i + 3];
@@ -376,24 +652,32 @@ function gateFrame(now, once) {
         bit = 1;
       }
     }
-    // 물결이 지나가는 점: 바깥으로 밀려나고 잠깐 0 · 1 로
+    // 물결: 빗방울이 떨어진 물처럼 둥근 고리가 바깥으로만 퍼져 나감
+    // (점을 튕기지 않고, 고리가 지나가는 순간에만 바깥쪽으로 살짝 들렸다가 제자리)
+    let rx = 0;
+    let ry = 0;
+    let ringBit = 0;
+    let ringChar = 0;
     for (const ripple of ripples) {
       if (ripple.hand !== dots[i + 10]) continue; // 클릭한 손만
       const age = (now - ripple.at) / 1000;
+      if (age < 0) continue; // 아직 출발 전인 물결
       const dx = dots[i] - ripple.x;
       const dy = dots[i + 1] - ripple.y;
       const d = Math.hypot(dx, dy) || 1;
       if (d > RIPPLE_RADIUS * k) continue; // 정해진 구역 밖은 그대로
-      const gap = Math.abs(d - age * rippleSpeed);
-      if (gap > rippleWidth) continue;
-      const ring = 1 - gap / rippleWidth;
-      const decay = 1 - (age * 1000) / RIPPLE_LIFE_MS;
-      const kick = strength * 1.2 * ring * decay;
-      fx += (dx / d) * kick;
-      fy += (dy / d) * kick;
-      if (ring > 0.5 && decay > 0.2) {
-        if (bit < 0.05) dots[i + 9] = Math.random() < 0.5 ? 0 : 1;
-        bit = 1;
+      const u = (d - age * rippleSpeed) / rippleWidth;
+      if (u <= -1 || u >= 1) continue;
+      const ring = 0.5 + 0.5 * Math.cos(u * Math.PI);
+      const decay = Math.max(0, 1 - (age * 1000) / RIPPLE_LIFE_MS);
+      const lift = RIPPLE_LIFT * k * ring * decay;
+      rx += (dx / d) * lift;
+      ry += (dy / d) * lift;
+      // 고리가 지나가는 순간에만 0 · 1 (지나가면 바로 점으로) → 고리 모양이 그대로 보임
+      const show = ring * Math.min(1, decay * 2.5);
+      if (show > ringBit) {
+        ringBit = show;
+        ringChar = (i / STRIDE * 7 + Math.floor(ripple.at)) % 2;
       }
     }
     vx += fx * dt;
@@ -410,21 +694,34 @@ function gateFrame(now, once) {
     dots[i + 7] = vy;
     dots[i + 8] = bit;
 
-    const x = hx + ox;
-    const y = hy + oy;
-    const b = bit * bit * (3 - 2 * bit);
+    const x = hx + ox + rx;
+    const y = hy + oy + ry;
+    const held = bit * bit * (3 - 2 * bit);
+    const b = Math.max(held, ringBit);
+    const char = ringBit > held ? ringChar : dots[i + 9];
+    if (ringBit > 0) active = true;
     context.fillStyle = "#111111";
     if (b < 0.98) {
+      // 뒤집힘: 동전이 세로축으로 한 바퀴 돌듯 폭이 줄었다 다시 펴짐 (도는 쪽으로 살짝 밀림)
+      const hand = dots[i + 10];
+      const cycle = clock % FLIP_EVERY; // 두 손이 같은 박자로
+      const turn = (cycle - dots[i + 11] * FLIP_SWEEP) / FLIP_DOT;
+      let rw = r;
+      let shift = 0;
+      if (turn > 0 && turn < 1) {
+        rw = r * Math.abs(Math.cos(turn * Math.PI));
+        shift = (hand ? 1 : -1) * r * 0.45 * Math.sin(turn * Math.PI);
+      }
       context.globalAlpha = alpha * (1 - b);
       context.beginPath();
-      context.arc(x, y, r, 0, Math.PI * 2);
+      context.ellipse(x + shift, y, Math.max(rw, r * 0.08), r, 0, 0, Math.PI * 2);
       context.fill();
     }
     if (b > 0.02) {
       context.fillStyle = "#b3141e"; // 0 · 1 은 사이트의 빨간색
       context.globalAlpha = Math.max(alpha, 0.35) * b;
       context.font = `700 ${Math.max(r * 3.2, 0.006 * k).toFixed(1)}px "Courier New", Courier, monospace`;
-      context.fillText(dots[i + 9] ? "1" : "0", x, y);
+      context.fillText(char ? "1" : "0", x, y);
     }
   }
 
@@ -435,6 +732,7 @@ function gateFrame(now, once) {
     while (scene.pressSpawn >= 1) {
       scene.pressSpawn -= 1;
       spawnPressBit(scene.press.x, scene.press.y, now);
+      window.gardenSound?.gateBit(Math.max(-1, Math.min(1, (scene.press.x / width) * 2 - 1)) * 0.8);
     }
   }
 
@@ -633,6 +931,7 @@ gateLayer?.addEventListener("pointerdown", (event) => {
       if (Math.hypot(bit.x - x, bit.y - y) < reach) bit.life += TRAIL_LIFE_MS * (PRESS_LIFE - 1);
     }
     for (let i = 0; i < 10; i++) spawnPressBit(x, y, now);
+    window.gardenSound?.gateBit(Math.max(-1, Math.min(1, (x / window.innerWidth) * 2 - 1)) * 0.8);
     gateScene.press = { x, y };
     gateScene.pressSpawn = 0;
     wakeGate();
@@ -640,8 +939,14 @@ gateLayer?.addEventListener("pointerdown", (event) => {
   }
   // 손이 숨 쉬며 움직여도 같은 자리에서 퍼지도록, 손 기준 좌표로 저장
   const sway = gateScene.drift[hand];
-  gateScene.ripples.push({ x: event.clientX - sway.x, y: event.clientY - sway.y, hand, at: performance.now() });
-  if (gateScene.ripples.length > 4) gateScene.ripples.shift();
+  // 두 번 파동: 같은 크기의 물결이 조금 뒤에 한 번 더
+  const at = performance.now();
+  for (let n = 0; n < RIPPLE_COUNT; n++) {
+    gateScene.ripples.push({ x: event.clientX - sway.x, y: event.clientY - sway.y, hand, at: at + n * RIPPLE_GAP_MS });
+  }
+  const pan = Math.max(-1, Math.min(1, (event.clientX / window.innerWidth) * 2 - 1));
+  window.gardenSound?.gateRipple(pan * 0.8, RIPPLE_GAP_MS / 1000);
+  if (gateScene.ripples.length > 8) gateScene.ripples.splice(0, gateScene.ripples.length - 8);
   wakeGate();
 });
 // 손을 떼면 쌓이기 멈춤 (이미 쌓인 0 · 1 은 천천히 사라짐)
@@ -650,9 +955,9 @@ for (const type of ["pointerup", "pointercancel"]) {
 }
 
 if (gateArt) {
-  window.addEventListener("resize", drawGateArt);
+  window.addEventListener("resize", () => drawGateArt());
   // 글꼴이 다 받아지면 글 크기가 바뀌므로 다시
-  document.fonts?.ready.then(drawGateArt);
+  document.fonts?.ready.then(() => drawGateArt());
 }
 
 async function playOpening() {
@@ -669,6 +974,15 @@ async function playOpening() {
   openingVideo.addEventListener("volumechange", paintSound);
   openingSound.addEventListener("click", (event) => {
     event.stopPropagation();
+    // 입장 전: 로딩 화면 배경음만 켜고 끔
+    if (opening.classList.contains("is-gated")) {
+      gateSoundOn = !gateSoundOn;
+      gateSoundTouched = true;
+      if (gateSoundOn) window.gardenSound?.gateStart();
+      else window.gardenSound?.gateStop(0.4);
+      paintSound();
+      return;
+    }
     const on = openingVideo.muted;
     soundOffByUser = !on;
     setOpeningSound(on);
@@ -712,8 +1026,24 @@ async function playOpening() {
 
   opening.classList.add("is-gated");
   openingGate.hidden = false;
-  openingSound.hidden = true;
+  openingSound.hidden = true; // 소리는 첫 화면의 [ SOUND OFF ] 버튼으로 켬
   openingSkip.hidden = true;
+
+  // 첫 화면: [ SOUND OFF ] 를 눌러 [ SOUND ON ] 이 되어야 시작
+  const soundGate = document.querySelector("#soundGate");
+  const soundGateButton = document.querySelector("#soundGateButton");
+  soundGateButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (gateSoundOn) return;
+    gateSoundOn = true;
+    gateSoundTouched = true;
+    window.gardenSound?.gateStart();
+    soundGateButton.textContent = "[ SOUND ON ]";
+    soundGateButton.classList.add("is-on");
+    soundGate.classList.add("is-open");
+    setTimeout(() => { soundGate.hidden = true; }, 1000);
+  });
+  soundGateButton?.focus({ preventScroll: true });
 
   // 로딩 원: 0과 1 글자 18개를 원 둘레에 (글자는 가끔 바뀜)
   const RING = 18;
@@ -757,11 +1087,14 @@ async function playOpening() {
     gateReady = true;
     openingLoader.classList.remove("is-visible");
     openingEnter.hidden = false;
+    gateScene.backdrop?.paintCopyMask(); // 로딩 원 → 버튼 모양으로 빈 곳 다시
   };
 
   // 처음부터 재생
   const startVideo = async () => {
     if (started || assemblyStarted) return;
+    // 로딩 화면에서 소리를 켰다가 다시 끈 경우만 영상도 소리 없이 (건드리지 않았으면 영상은 소리와 함께)
+    if (gateSoundTouched) soundOffByUser = !gateSoundOn;
     openingVideo.muted = soundOffByUser;
     try {
       openingVideo.currentTime = 0;
@@ -778,6 +1111,7 @@ async function playOpening() {
       started = true;
       // 글은 사라지고 두 손은 양쪽으로 들어감 → 완전히 빈 흰 화면이 된 뒤 영상 시작
       opening.classList.add("is-entering");
+      window.gardenSound?.gateStop(GATE_EXIT_MS / 1000);
       gateScene.exitAt = performance.now();
       gateScene.pointer = null;
       wakeGate();
@@ -824,15 +1158,22 @@ async function playOpening() {
     };
     sweepFrame = requestAnimationFrame(step);
   };
-  openingEnter.addEventListener("pointerenter", () => { sweepTarget = 1; runSweep(); });
+  openingEnter.addEventListener("pointerenter", (event) => {
+    sweepTarget = 1;
+    runSweep();
+    if (event.pointerType !== "touch" && !started && gateSoundOn) window.gardenSound?.enterHover();
+  });
   openingEnter.addEventListener("pointerleave", () => { sweepTarget = 0; runSweep(); });
 
   openingEnter.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (gateReady) startVideo();
+    if (gateReady && !started) {
+      window.gardenSound?.enterClick();
+      startVideo();
+    }
   });
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && gateReady && !started && opening.isConnected && !assemblyStarted) startVideo();
+    if (event.key === "Enter" && gateReady && gateSoundOn && !started && opening.isConnected && !assemblyStarted) startVideo();
   });
 
   // 영상 받기: 통째로 받아서 메모리에 두고 재생 → 중간에 받느라 멈추지 않음
