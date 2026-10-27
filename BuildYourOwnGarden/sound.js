@@ -250,19 +250,19 @@
     // 드론: 살짝 어긋난 두 톱니파 + 한 옥타브 위 사인, 천천히 열렸다 닫히는 필터
     const filter = context.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 360;
-    filter.Q.value = 5;
+    filter.frequency.value = 230; // 낮게 — 높은 배음이 덜 들리게
+    filter.Q.value = 2;           // 공명(휘파람 같은 높은 울림) 줄임
     const droneAmp = context.createGain();
     droneAmp.gain.value = 0.045;
     filter.connect(droneAmp).connect(gate.bus);
     const lfo = context.createOscillator();
     const lfoAmp = context.createGain();
     lfo.frequency.value = 0.07;
-    lfoAmp.gain.value = 180;
+    lfoAmp.gain.value = 80;
     lfo.connect(lfoAmp).connect(filter.frequency);
     lfo.start();
     gate.nodes.push(lfo);
-    [[55, "sawtooth", 1], [55.35, "sawtooth", 1], [110, "sine", 0.8], [164.8, "sine", 0.35]].forEach(([freq, type, level]) => {
+    [[55, "sawtooth", 1], [55.35, "sawtooth", 1], [110, "sine", 0.8], [164.8, "sine", 0.08]].forEach(([freq, type, level]) => {
       const osc = context.createOscillator();
       const amp = context.createGain();
       osc.type = type;
