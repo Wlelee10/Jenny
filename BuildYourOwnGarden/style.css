@@ -651,7 +651,7 @@ body.is-falling .glass {
   border: 0;
   border-radius: calc(999 * var(--u));
   background: transparent;
-  color: #ffffff;
+  color: #111111;
   font-family: "VT323", "Inter Tight", Arial, Helvetica, sans-serif;
   font-variant-ligatures: none;
   font-size: calc(var(--k) * 0.009);
@@ -664,81 +664,90 @@ body.is-falling .glass {
   transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 무지갯빛: 버튼 길이만큼, 버튼 뒤에 깔려 아래로만 번짐 → 호버하면 버튼 전체를 감싸며 빛남 */
+/* 무지갯빛은 유리 테두리에만: 평소엔 아래쪽, 호버하면 테두리 전체 */
 .gate-enter {
   isolation: isolate;
 }
 
-/* 검정 알약 (빛보다 위) */
+/* 유리 알약 (빛보다 위): 뒤를 흐리게 비추고, 위쪽 하이라이트 + 얇은 테두리 */
 .gate-enter::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: #111111;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.06) 48%, rgba(255, 255, 255, 0) 52%, rgba(255, 255, 255, 0.12) 100%);
+  background-color: rgba(255, 255, 255, 0);
+  transition: background-color 220ms ease;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.08),
+    0 calc(var(--k) * 0.002) calc(var(--k) * 0.006) rgba(0, 0, 0, 0.12);
+  -webkit-backdrop-filter: blur(calc(var(--k) * 0.0009)) saturate(1.6);
+  backdrop-filter: blur(calc(var(--k) * 0.0009)) saturate(1.6);
 }
 
-.gate-enter::after {
+/* 무지갯빛 (유리 전 버튼과 같은 번진 빛): 버튼보다 살짝 큰 알약을 크게 흐림
+   — 버튼 안쪽(유리 속)은 잘라내서 테두리 바깥으로만 퍼짐 */
+.gate-rim,
+.gate-halo {
+  --glow-box: calc(var(--k) * 0.03);
+
+  position: absolute;
+  inset: calc(var(--glow-box) * -1);
+  padding: var(--glow-box);
+  border-radius: calc(999 * var(--u));
+  pointer-events: none;
+}
+
+.gate-rim::after,
+.gate-halo::after {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 35%;
-  bottom: calc(var(--k) * -0.0045);
-  z-index: -2;
-
+  inset: calc(var(--glow-box) - var(--k) * 0.004);
   border-radius: calc(999 * var(--u));
-  background: linear-gradient(90deg, #ffd36b, #ff8bd1, #b58cff, #7fd3ff, #9cf0b8);
-  filter: blur(calc(var(--k) * 0.0055));
-  opacity: 0.5; /* 흑백 + 빨강 화면에 맞게 은은하게 */
-  transition: top 320ms ease, bottom 320ms ease, left 320ms ease, right 320ms ease, opacity 320ms ease, filter 320ms ease;
+  background: conic-gradient(from 180deg, #9cf0b8, #7fd3ff, #b58cff, #ff8bd1, #ffd36b, #ff8bd1, #b58cff, #7fd3ff, #9cf0b8);
+  filter: blur(calc(var(--k) * 0.0085));
 }
 
-/* 호버: 아래의 빛에서 시작해 양옆 외곽을 따라 올라가 위 가운데에서 만나고, 버튼 전체가 빛남 */
+/* 평소: 유리 아래쪽 테두리에서만 번짐 (위쪽 가림 · 버튼 안쪽 잘라냄) */
+.gate-rim {
+  -webkit-mask:
+    linear-gradient(180deg, transparent 42%, #000 62%),
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: source-in, xor, source-over;
+  mask:
+    linear-gradient(180deg, transparent 42%, #000 62%) intersect,
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0.85;
+}
+
+/* 호버: 아래에서 양옆 테두리를 따라 재빠르게 올라가 위에서 만남 (JS가 --halo-mask 로 채움) */
 .gate-halo {
-  --sweep: 0deg;
-
-  position: absolute;
-  /* 번진 빛이 잘리지 않도록 넉넉한 상자 (빛 모양은 ::before) */
-  inset: calc(var(--k) * -0.022);
-  z-index: -2;
-
-  filter: blur(calc(var(--k) * 0.0085));
-  pointer-events: none;
-
-  /* 아래에서 양옆으로 차오르는 빛: 위쪽의 빈 틈을 JS가 --halo-mask 로 좁혀 감 */
-  -webkit-mask-image: var(--halo-mask, conic-gradient(transparent 0deg 360deg));
-  mask-image: var(--halo-mask, conic-gradient(transparent 0deg 360deg));
-
+  -webkit-mask:
+    var(--halo-mask, linear-gradient(transparent 0 0)),
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: source-in, xor, source-over;
+  mask:
+    var(--halo-mask, linear-gradient(transparent 0 0)) intersect,
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
   opacity: 0;
   transition: opacity 200ms ease;
 }
 
-/* 빛 모양: 버튼보다 살짝 큰 알약 */
-.gate-halo::before {
-  content: "";
-  position: absolute;
-  inset: calc(var(--k) * 0.018);
-  border-radius: calc(999 * var(--u));
-  background: conic-gradient(from 180deg, #9cf0b8, #7fd3ff, #b58cff, #ff8bd1, #ffd36b, #ff8bd1, #b58cff, #7fd3ff, #9cf0b8);
+/* 호버: 유리가 살짝 뿌예져서 버튼이 더 또렷이 보임 */
+.gate-enter:hover::before {
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
-.gate-halo.is-full {
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-
-/* 빈 틈은 JS가 위 가운데 기준으로 좁힘 (사파리 · 크롬 모두 같은 속도로) */
 .gate-enter:hover .gate-halo {
-  opacity: 0.4;
-}
-
-/* 다 감싼 뒤에는 전체가 은은하게 더 밝아짐 */
-.gate-enter:hover::after {
-  opacity: 0.6;
-  filter: blur(calc(var(--k) * 0.0065));
-  transition-delay: 450ms;
+  opacity: 0.75;
 }
 
 .gate-enter[hidden] {

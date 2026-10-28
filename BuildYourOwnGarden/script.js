@@ -344,7 +344,7 @@ function buildHandShadows(width, height, k, ratio, dots) {
 }
 
 // 0 · 1 을 비울 곳: 제목 · 본문 한 줄 한 줄의 글자 외곽, 버튼(빛 포함) 또는 로딩 원
-function copyShapes(k) {
+function copyShapes(k, forMask = false) {
   const shapes = [];
   const textPad = 0.004 * k;
   const range = document.createRange();
@@ -357,9 +357,10 @@ function copyShapes(k) {
   });
   const button = document.querySelector("#openingEnter");
   const target = button && !button.hidden ? button : document.querySelector("#openingLoader");
-  const rect = target?.getBoundingClientRect();
+  // 유리 버튼은 비우지 않음 — 0 · 1 이 버튼 가장자리까지 오고 유리 뒤로 언뜻 비침
+  const rect = forMask && target === button ? null : target?.getBoundingClientRect();
   if (rect?.width) {
-    const glow = 0.022 * k; // 버튼 빛이 번지는 만큼
+    const glow = target === button ? 0 : 0.022 * k; // 로딩 원 둘레만 조금 더 비움
     const half = Math.min(rect.width, rect.height) / 2;
     // 알약 모양: 가운데 선분까지의 거리 - 반지름
     shapes.push({
@@ -394,7 +395,7 @@ function buildGateBackdrop(width, height, k, ratio, dots, area) {
   const gh = Math.max(gy, height - gy);
   const copyMask = makeMask();
   const paintCopyMask = () => {
-    const quiet = copyShapes(k);
+    const quiet = copyShapes(k, true);
     const quietPad = 0.016 * k; // 글 외곽에서 이만큼 지나면 다 나타남
     const cctx = copyMask.getContext("2d");
     const copyPixels = cctx.createImageData(mw, mh);
@@ -1146,40 +1147,35 @@ async function playOpening() {
     }
   };
 
-  // 호버: 빛이 아래에서 양옆 외곽을 따라 위 가운데까지 차오름 (나갈 때는 반대로)
+  // 호버: 빛이 아래에서 양옆 테두리를 따라 재빠르게 올라가 위 가운데에서 만남
   const halo = openingEnter.querySelector(".gate-halo");
-  let sweep = 0;
-  let sweepTarget = 0;
-  let sweepFrame = 0;
-  const SWEEP_MS = 650;
-  const runSweep = () => {
-    cancelAnimationFrame(sweepFrame);
-    let last = performance.now();
+  const SPIN_MS = 380;
+  const SPIN_SOFT = 50; // 빛 끝자락이 부드럽게 번지는 각도
+  let spinFrame = 0;
+  const spin = () => {
+    cancelAnimationFrame(spinFrame);
+    const start = performance.now();
     const step = (now) => {
-      const dt = now - last;
-      last = now;
-      const dir = Math.sign(sweepTarget - sweep);
-      sweep = Math.max(0, Math.min(1, sweep + (dir * dt) / (dir > 0 ? SWEEP_MS : SWEEP_MS * 0.6)));
-      const e = sweep < 0.5 ? 2 * sweep * sweep : 1 - Math.pow(-2 * sweep + 2, 2) / 2;
-      // 위 가운데(0deg) 기준 빈 틈의 반쪽 g: 180+F(아무것도 없음) → -F(다 참). 틈 가장자리는 F만큼 부드럽게
-      const F = 50;
+      const t = Math.min(1, (now - start) / SPIN_MS);
+      const e = 1 - Math.pow(1 - t, 3);
+      // 위 가운데(0deg) 기준 빈 틈의 반쪽 g: 180+F(빈 틈뿐) → -F(다 참)
+      // 틈이 닫히는 동안 틈 자리도 같이 차올라서, 만날 때 이음매(직선)가 생기지 않음
+      const F = SPIN_SOFT;
       const g = 180 + F - e * (180 + 2 * F);
-      const top = Math.min(1, Math.max(0, -g / F)); // 틈이 닫히는 만큼 위 가운데도 차오름
+      const top = Math.min(1, Math.max(0, (F - g) / (2 * F))).toFixed(3);
       const g0 = Math.max(0, g);
       const g1 = Math.min(180, g0 + F);
-      const mask = `conic-gradient(from 0deg, rgba(0,0,0,${top.toFixed(3)}) 0deg, rgba(0,0,0,${top.toFixed(3)}) ${g0.toFixed(1)}deg, #000 ${g1.toFixed(1)}deg, #000 ${(360 - g1).toFixed(1)}deg, rgba(0,0,0,${top.toFixed(3)}) ${(360 - g0).toFixed(1)}deg)`;
-      halo?.style.setProperty("--halo-mask", g >= 180 + F - 0.01 ? "conic-gradient(transparent 0deg 360deg)" : mask);
-      halo?.classList.toggle("is-full", sweep >= 1); // 다 감싸면 이음매 없이 전체
-      if (sweep !== sweepTarget) sweepFrame = requestAnimationFrame(step);
+      halo?.style.setProperty("--halo-mask", t >= 1
+        ? "linear-gradient(#000 0 0)"
+        : `conic-gradient(from 0deg, rgba(0,0,0,${top}) 0deg, rgba(0,0,0,${top}) ${g0.toFixed(1)}deg, #000 ${g1.toFixed(1)}deg, #000 ${(360 - g1).toFixed(1)}deg, rgba(0,0,0,${top}) ${(360 - g0).toFixed(1)}deg)`);
+      if (t < 1) spinFrame = requestAnimationFrame(step);
     };
-    sweepFrame = requestAnimationFrame(step);
+    spinFrame = requestAnimationFrame(step);
   };
   openingEnter.addEventListener("pointerenter", (event) => {
-    sweepTarget = 1;
-    runSweep();
+    spin();
     if (event.pointerType !== "touch" && !started && gateSoundOn) window.gardenSound?.enterHover();
   });
-  openingEnter.addEventListener("pointerleave", () => { sweepTarget = 0; runSweep(); });
 
   openingEnter.addEventListener("click", (event) => {
     event.stopPropagation();
