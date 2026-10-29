@@ -138,6 +138,11 @@
 
     <div class="work-panel ui" id="workPanel"></div>
 
+    <!-- 캔버스 밖으로 나간 부분: 흐리게 보이고 눌러서 잡을 수 있음 (캔버스 · 패널보다 아래) -->
+    <div class="canvas-spill ui" id="canvasSpill" aria-hidden="true">
+      <div class="spill-stage" id="spillStage"></div>
+    </div>
+
     <!-- 캔버스 툴 -->
     <div class="toolbar ui" id="toolbar" role="toolbar" aria-orientation="vertical">
       <button class="tool" type="button" data-tool="color" data-tip="CANVAS COLOR" aria-label="Canvas color">

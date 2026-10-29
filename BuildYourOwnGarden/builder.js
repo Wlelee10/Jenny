@@ -28,6 +28,8 @@
   const canvas = $("#canvas");
   const stage = $("#canvasStage");
   const overlay = $("#canvasOverlay");
+  const spill = $("#canvasSpill");
+  const spillStage = $("#spillStage");
   const selFrame = $("#selFrame");
   const selOutlines = $("#selOutlines");
   const selLabel = $("#selLabel");
@@ -292,10 +294,12 @@
     place(workPanel, rects.panel);
     place(canvas, rects.canvas);
     place(overlay, rects.canvas);
+    place(spill, rects.canvas);
     place(layersPanel, rects.layers);
     place(toolbar, rects.toolbar);
     place(info, rects.info);
     stage.style.transform = `scale(${rects.canvas.width / UNITS})`;
+    spillStage.style.transform = stage.style.transform;
 
     if (immediate) {
       builder.offsetWidth; // 즉시 반영
@@ -816,6 +820,8 @@
     return image;
   }
 
+  const spillElements = new Map();
+
   function renderItems() {
     normalizeGroups();
     const alive = new Set();
@@ -850,12 +856,36 @@
       element.classList.toggle("is-locked", item.locked);
       layoutItemImage(element.firstChild, item);
       alive.add(item.uid);
+
+      // 캔버스 밖 부분: 같은 조각을 캔버스 뒤에 흐리게 한 번 더 (밖으로 나간 부분만 보임)
+      let ghost = spillElements.get(item.uid);
+      if (!ghost) {
+        ghost = document.createElement("div");
+        ghost.className = "spill-item";
+        ghost.dataset.uid = item.uid;
+        ghost.appendChild(createItemImage(item));
+        spillElements.set(item.uid, ghost);
+      }
+      spillStage.appendChild(ghost); // 순서도 캔버스와 같게
+      ghost.style.width = element.style.width;
+      ghost.style.height = element.style.height;
+      ghost.style.transform = element.style.transform;
+      ghost.style.display = element.style.display;
+      ghost.classList.toggle("is-locked", item.locked);
+      ghost.classList.toggle("is-lifted", element.classList.contains("is-lifted"));
+      layoutItemImage(ghost.firstChild, item);
     });
 
     itemElements.forEach((element, uid) => {
       if (!alive.has(uid)) {
         element.remove();
         itemElements.delete(uid);
+      }
+    });
+    spillElements.forEach((ghost, uid) => {
+      if (!alive.has(uid)) {
+        ghost.remove();
+        spillElements.delete(uid);
       }
     });
 
@@ -895,7 +925,7 @@
   // 커서 아래에서 잠기지 않은 가장 위의 조각 (모양으로 자른 바깥은 통과)
   function itemAt(x, y) {
     for (const element of document.elementsFromPoint(x, y)) {
-      if (!element.classList.contains("canvas-item")) continue;
+      if (!element.classList.contains("canvas-item") && !element.classList.contains("spill-item")) continue;
       const item = itemByUid(Number(element.dataset.uid));
       if (!item || item.locked || item.hidden) continue;
       if (item.mask) {
@@ -938,7 +968,13 @@
   canvas.addEventListener("contextmenu", (event) => event.preventDefault());
   overlay.addEventListener("contextmenu", (event) => event.preventDefault());
 
-  canvas.addEventListener("pointerdown", (event) => {
+  // 캔버스 밖으로 나간 흐린 부분을 눌러도 캔버스를 누른 것과 똑같이
+  spill.addEventListener("pointerdown", (event) => canvasDown(event));
+  spill.addEventListener("contextmenu", (event) => event.preventDefault());
+
+  canvas.addEventListener("pointerdown", (event) => canvasDown(event));
+
+  function canvasDown(event) {
     if (!active || drag || action || sampling) return;
     if (event.button !== 0 && event.button !== 2) return;
 
@@ -1008,9 +1044,9 @@
       action.narrowTo = duplicated ? null : narrowTo;
       action.deselect = duplicated ? null : deselect;
     }
-  });
+  }
 
-  canvas.addEventListener("dblclick", (event) => {
+  const canvasDoubleClick = (event) => {
     if (cutting) return;
     const only = selection.size === 1 && insideSelection(event.clientX, event.clientY) ? selectedItems()[0] : null;
     const item = only ?? itemAt(event.clientX, event.clientY);
@@ -1018,7 +1054,9 @@
       setSelection([item.uid]);
       enterCrop();
     }
-  });
+  };
+  canvas.addEventListener("dblclick", canvasDoubleClick);
+  spill.addEventListener("dblclick", canvasDoubleClick);
 
   function startMove(event) {
     const moving = editableSelection();

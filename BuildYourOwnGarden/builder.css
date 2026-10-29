@@ -278,6 +278,63 @@
   visibility: hidden;
 }
 
+/* 캔버스 밖으로 나간 부분 (캔버스 안쪽은 흰 캔버스가 덮음) */
+.canvas-spill {
+  z-index: 2; /* 작업 패널 위, 라이브러리 · 레이어 · 도구 막대 아래 */
+  pointer-events: none;
+  transition-property: left, top, width, height, opacity;
+}
+
+.spill-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(1000 * var(--u));
+  height: calc(1000 * var(--u));
+
+  transform-origin: 0 0;
+  transition: transform var(--layout-ms) var(--ease-out);
+}
+
+.spill-item {
+  position: absolute;
+  left: 0;
+  top: 0;
+
+  overflow: hidden;
+  transform-origin: 50% 50%;
+  opacity: 0.35;
+  filter: blur(calc(3 * var(--u))); /* 캔버스 밖은 살짝 흐릿하게 */
+  pointer-events: auto;
+  cursor: move;
+}
+
+.spill-item .item-image {
+  position: absolute;
+  display: block;
+  max-width: none;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.spill-item:hover {
+  outline: calc(2 * var(--u)) solid var(--select-soft);
+}
+
+.spill-item.is-locked {
+  pointer-events: none;
+}
+
+.spill-item.is-lifted {
+  visibility: hidden;
+}
+
+.builder.is-finished .canvas-spill {
+  opacity: 0;
+  visibility: hidden;
+}
+
 
 
 /* =========================================
@@ -286,7 +343,7 @@
 
 .canvas-overlay {
   position: absolute;
-  z-index: 5;
+  z-index: 7; /* 레이어 패널 · 도구 막대보다 위: 가려진 핸들도 잡을 수 있게 */
   pointer-events: none;
 
   transition:
@@ -738,6 +795,13 @@
 
   font-size: var(--info-size, 16px);
   letter-spacing: 0.02em;
+
+  /* 글자 부분은 클릭이 통과 → 그 뒤로 캔버스 밖에 나간 조각도 잡을 수 있음 (FINISH만 누름) */
+  pointer-events: none;
+}
+
+.info button {
+  pointer-events: auto;
 }
 
 .info-num {
