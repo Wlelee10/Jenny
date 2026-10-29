@@ -42,6 +42,9 @@
   const selectedCount = $("#selectedCount");
   const finishButton = $("#finishButton");
   const colorPopover = $("#colorPopover");
+  const opacityPopover = $("#opacityPopover");
+  const opacityRange = $("#opacityRange");
+  const opacityValue = $("#opacityValue");
   const swatchBox = $("#swatches");
   const colorInput = $("#colorInput");
   const eyedropperButton = $("#eyedropperButton");
@@ -821,6 +824,7 @@
   }
 
   const spillElements = new Map();
+  const itemOpacity = (item) => item.opacity ?? 1;
 
   function renderItems() {
     normalizeGroups();
@@ -853,6 +857,7 @@
       element.style.transform =
         `translate(${item.x - item.w / 2}px, ${item.y - item.h / 2}px) rotate(${item.rotation}deg)`;
       element.style.display = item.hidden ? "none" : "";
+      element.style.opacity = itemOpacity(item) < 1 ? String(itemOpacity(item)) : "";
       element.classList.toggle("is-locked", item.locked);
       layoutItemImage(element.firstChild, item);
       alive.add(item.uid);
@@ -871,6 +876,7 @@
       ghost.style.height = element.style.height;
       ghost.style.transform = element.style.transform;
       ghost.style.display = element.style.display;
+      ghost.style.opacity = String(0.35 * itemOpacity(item));
       ghost.classList.toggle("is-locked", item.locked);
       ghost.classList.toggle("is-lifted", element.classList.contains("is-lifted"));
       ghost.classList.toggle("is-shown", selection.has(item.uid));
@@ -2527,6 +2533,8 @@
   function closePopovers() {
     colorPopover.hidden = true;
     toolbar.querySelector('[data-tool="color"]').classList.remove("is-open");
+    opacityPopover.hidden = true;
+    toolbar.querySelector('[data-tool="opacity"]').classList.remove("is-open");
   }
 
   SWATCHES.forEach((color) => {
@@ -2546,6 +2554,22 @@
     commit();
   });
 
+  // 투명도: 선택한 조각(잠긴 것 빼고)에 함께 적용
+  function syncOpacityControl() {
+    const first = selectedItems()[0];
+    const percent = Math.round((first ? itemOpacity(first) : 1) * 100);
+    opacityRange.value = String(percent);
+    opacityValue.textContent = `${percent}%`;
+  }
+
+  opacityRange.addEventListener("input", () => {
+    const value = Number(opacityRange.value) / 100;
+    opacityValue.textContent = `${opacityRange.value}%`;
+    selectedItems().filter((item) => !item.locked).forEach((item) => { item.opacity = value; });
+    renderItems();
+  });
+  opacityRange.addEventListener("change", () => commit());
+
   colorInput.addEventListener("input", () => setBackground(colorInput.value));
   colorInput.addEventListener("change", () => commit());
 
@@ -2557,6 +2581,7 @@
       case "color": openPopover(colorPopover, button); break;
       case "duplicate": exitModes(); duplicateSelection(); break;
       case "rotate": rotateSelected(event.shiftKey ? -90 : 90); break;
+      case "opacity": syncOpacityControl(); openPopover(opacityPopover, button); break;
       case "flip": flipSelected(); break;
       case "flipY": flipSelectedVertical(); break;
       case "crop": cropping ? exitCrop() : enterCrop(); break;
@@ -3054,6 +3079,7 @@
     });
 
     tool("rotate").disabled = !editable.length;
+    tool("opacity").disabled = !editable.length;
     tool("flip").disabled = !editable.length;
     tool("flipY").disabled = !editable.length;
     tool("crop").disabled = !single;
@@ -3093,6 +3119,7 @@
       const fh = item.h / (1 - crop.t - crop.b);
 
       context.save();
+      context.globalAlpha = itemOpacity(item);
       context.scale(k, k);
       context.translate(item.x, item.y);
       context.rotate((item.rotation * Math.PI) / 180);

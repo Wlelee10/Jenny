@@ -1216,6 +1216,33 @@
   stroke-linejoin: round;
 }
 
+/* 투명도 팝오버 */
+.opacity-popover {
+  width: calc(170 * var(--u));
+}
+
+.opacity-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: calc(10 * var(--u));
+
+  font-size: calc(10 * var(--u));
+  letter-spacing: 0.06em;
+}
+
+.opacity-value {
+  color: #6a6a6a;
+  font-variant-numeric: tabular-nums;
+}
+
+.opacity-range {
+  display: block;
+  width: 100%;
+  margin: 0;
+  accent-color: #111111;
+  cursor: pointer;
+}
+
 .current-color {
   margin: calc(10 * var(--u)) 0 0;
   font-size: calc(10 * var(--u));

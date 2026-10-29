@@ -154,6 +154,9 @@
       <button class="tool" type="button" data-tool="rotate" data-tip="ROTATE 90°" aria-label="Rotate 90 degrees" data-needs-selection>
         <svg viewBox="0 0 18 18"><path d="M14.6 9.4a5.6 5.6 0 1 1-1.7-4.2" /><path d="M13.4 2.4v3.1h-3.1" /></svg>
       </button>
+      <button class="tool" type="button" data-tool="opacity" data-tip="OPACITY" aria-label="Opacity" data-needs-selection>
+        <svg viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" /><path d="M9 3a6 6 0 0 1 0 12z" class="tool-fill" /></svg>
+      </button>
       <button class="tool" type="button" data-tool="flip" data-tip="FLIP" aria-label="Flip horizontally" data-needs-selection>
         <svg viewBox="0 0 18 18"><path d="M9 2.5v13" stroke-dasharray="1.6 1.9" /><path d="M6.6 5.2 2.8 13h3.8z" /><path d="M11.4 5.2l3.8 7.8h-3.8z" class="tool-fill" /></svg>
       </button>
@@ -238,6 +241,15 @@
         </button>
       </div>
       <p class="current-color" id="currentColor">#FFFFFF</p>
+    </div>
+
+    <!-- 선택한 조각의 투명도 -->
+    <div class="popover opacity-popover" id="opacityPopover" hidden>
+      <div class="opacity-head">
+        <span>OPACITY</span>
+        <span class="opacity-value" id="opacityValue">100%</span>
+      </div>
+      <input class="opacity-range" id="opacityRange" type="range" min="0" max="100" step="1" value="100" aria-label="Opacity" />
     </div>
 
     <!-- 스포이드: 클릭 전 커서 아래 색상 미리보기 -->
