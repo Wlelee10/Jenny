@@ -873,6 +873,7 @@
       ghost.style.display = element.style.display;
       ghost.classList.toggle("is-locked", item.locked);
       ghost.classList.toggle("is-lifted", element.classList.contains("is-lifted"));
+      ghost.classList.toggle("is-shown", selection.has(item.uid));
       layoutItemImage(ghost.firstChild, item);
     });
 
@@ -904,6 +905,7 @@
   function setSelection(uids) {
     selection.clear();
     uids.forEach((uid) => selection.add(uid));
+    spillElements.forEach((ghost, uid) => ghost.classList.toggle("is-shown", selection.has(uid)));
     if (cropping && !selection.has(cropping.uid)) exitCrop();
     if (cutting && !selection.has(cutting.uid)) exitCut();
     renderLayers();

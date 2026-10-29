@@ -305,8 +305,16 @@
   transform-origin: 50% 50%;
   opacity: 0.35;
   filter: blur(calc(3 * var(--u))); /* 캔버스 밖은 살짝 흐릿하게 */
-  pointer-events: auto;
   cursor: move;
+
+  /* 선택한 조각만 캔버스 밖 부분이 보이고 잡힘 (선택 안 하면 FINISH 등을 가리지 않음) */
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.spill-item.is-shown {
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .spill-item .item-image {
